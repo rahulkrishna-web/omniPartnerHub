@@ -33,24 +33,32 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
       console.log("Checking for shopify global...", window.shopify);
       console.log("Current location:", window.location.href);
+      console.log("Host param:", host);
+
+      // TRUST HOST: If we have a host parameter, assume we are embedded and ready to render.
+      // This bypasses the 'window.shopify' check blocking the UI if the script is slow or silent.
+      if (host) {
+        setAppBridgeReady(true);
+      }
 
       if (window.shopify) {
         setAppBridgeReady(true);
       } else {
-        // Poll for shopify global
+        // Poll for shopify global just to log availability
         const interval = setInterval(() => {
           if (window.shopify) {
-             setAppBridgeReady(true);
+             // setAppBridgeReady(true); // Already set by host check
+             console.log("Shopify global detected via polling");
              clearInterval(interval);
           }
         }, 100);
         
-        // Timeout after 5 seconds
+        // Timeout after 5 seconds - only warn now
         const timeout = setTimeout(() => {
            clearInterval(interval);
-           console.error("App Bridge initialization timed out. API Key:", process.env.NEXT_PUBLIC_SHOPIFY_API_KEY);
-           setAppBridgeReady(false); 
-           setInitError(true);
+           if (!window.shopify) {
+               console.warn("App Bridge global not detected after 5s, but rendering based on host param.");
+           }
         }, 5000);
 
         return () => {

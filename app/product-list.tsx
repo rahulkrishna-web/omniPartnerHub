@@ -14,7 +14,8 @@ import {
   TextField,
   BlockStack, // Use BlockStack instead of Stack (deprecated) or LegacyStack
   InlineStack,
-  Banner
+  Banner,
+  ButtonGroup
 } from "@shopify/polaris";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import { getSessionToken } from "@shopify/app-bridge-utils"; // Check if this package is needed or if app-bridge-react exports it
@@ -26,6 +27,11 @@ export function ProductList() {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+  const [editingProductId, setEditingProductId] = useState<string | null>(null);
+  const [editedIsPublic, setEditedIsPublic] = useState<boolean | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
 
   async function fetchProducts() {
     setLoading(true);

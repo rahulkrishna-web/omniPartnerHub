@@ -1,0 +1,19 @@
+# This file stores configurations for your Shopify app.
+
+client_id = "SHOPIFY_API_KEY"
+name = "OmniPartner Hub"
+handle = "omnipartner-hub"
+application_url = "https://example.com"
+embedded = true
+
+[webhooks]
+api_version = "2024-04"
+
+[auth]
+redirect_urls = [
+  "https://example.com/api/auth/callback",
+  "https://example.com/api/auth/token"
+]
+
+[pos]
+embedded = false

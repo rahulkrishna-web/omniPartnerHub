@@ -9,18 +9,27 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "next": "16.1.6",
-    "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "@shopify/polaris": "^13.9.5",
+    "@shopify/shopify-api": "^12.3.0",
+    "@vercel/postgres": "^0.10.0",
+    "autoprefixer": "10.4.24",
+    "drizzle-orm": "^0.45.1",
+    "inngest": "^3.52.0",
+    "next": "14.2.35",
+    "postcss": "8.5.6",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
+    "@shopify/app": "^3.58.2",
+    "@shopify/cli": "^3.90.1",
     "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.1.6",
-    "tailwindcss": "^4",
+    "@types/react": "18.3.28",
+    "@types/react-dom": "18.3.7",
+    "drizzle-kit": "^0.31.9",
+    "eslint": "8.57.1",
+    "eslint-config-next": "14.2.35",
+    "tailwindcss": "3.4.19",
     "typescript": "^5"
   }
 }

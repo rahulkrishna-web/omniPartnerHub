@@ -5,6 +5,7 @@ import { eq, and } from "drizzle-orm";
 import { ProductList } from "./product-list";
 import { shopify } from "@/lib/shopify";
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 
 // Helper to get current shop from session
 async function getCurrentShop() {
@@ -24,7 +25,27 @@ async function getCurrentShop() {
   return null;
 }
 
-export default function Home() {
+export default function Home({
+  searchParams,
+}: {
+  searchParams: { [key: string]: string | string[] | undefined };
+}) {
+  const shop = searchParams.shop as string | undefined;
+  const host = searchParams.host as string | undefined;
+
+  // Auto-fix missing host param: Redirect to URL with host if shop is present
+  if (shop && !host) {
+    const shopName = shop.replace(".myshopify.com", "");
+    const rawHost = `admin.shopify.com/store/${shopName}`;
+    const newHost = Buffer.from(rawHost).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    
+    // Construct new URL parameters
+    const params = new URLSearchParams(searchParams as Record<string, string>);
+    params.set("host", newHost);
+    
+    redirect(`/?${params.toString()}`);
+  }
+
   return (
     <main className="p-4">
        <ProductList />

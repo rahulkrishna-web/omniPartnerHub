@@ -41,11 +41,20 @@ async function getSessionToken() {
         });
     }
 
-    if (window.shopify && window.shopify.id) {
+    if (window.shopify) {
         try {
-            const token = await window.shopify.id.getSessionToken();
-            console.log("Debug: getSessionToken success", token ? "Yes" : "No");
-            return token;
+            // App Bridge v4 (CDN) uses idToken()
+            if (window.shopify.idToken) {
+                const token = await window.shopify.idToken();
+                 console.log("Debug: idToken() success", token ? "Yes" : "No");
+                 return token;
+            }
+            // Fallback for older versions
+            if (window.shopify.id && window.shopify.id.getSessionToken) {
+                const token = await window.shopify.id.getSessionToken();
+                console.log("Debug: getSessionToken success", token ? "Yes" : "No");
+                return token;
+            }
         } catch (e) {
             console.error("Debug: Failed to get session token:", e);
             return null;

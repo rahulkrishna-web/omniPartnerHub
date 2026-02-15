@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import Script from "next/script";
 import "./globals.css";
 import { Providers } from "./providers";
 
@@ -23,11 +22,7 @@ export default function RootLayout({
         <meta name="shopify-api-key" content={apiKey} />
       </head>
       <body className={inter.className}>
-        <Script 
-          src="https://cdn.shopify.com/shopify-cloud/app-bridge.js" 
-          strategy="beforeInteractive"
-          data-api-key={apiKey}
-        />
+        <script src="https://cdn.shopify.com/shopify-cloud/app-bridge.js" data-api-key={apiKey}></script>
         <Providers>{children}</Providers>
       </body>
     </html>

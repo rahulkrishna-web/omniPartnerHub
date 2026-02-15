@@ -18,6 +18,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (typeof window !== "undefined") {
       console.log("Checking for shopify global...", window.shopify);
+      console.log("Current location:", window.location.href);
       if (window.shopify) {
         setAppBridgeReady(true);
       } else {

@@ -1,26 +1,4 @@
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
-
 export function middleware(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const shop = searchParams.get('shop');
-  let host = searchParams.get('host');
-
-  // Auto-fix missing host param: Redirect to URL with host if shop is present
-  if (shop && !host) {
-     const shopName = shop.replace(".myshopify.com", "");
-     const rawHost = `admin.shopify.com/store/${shopName}`;
-     // manual base64 encoding (Buffer is not available in Edge runtime usually, but we can use btoa behavior if needed or a polyfill, 
-     // but actually Vercel Edge supports Buffer? No.
-     // We need to use standard btoa but that's for strings.
-     // In Edge Middleware, we can use globalThis.btoa
-     host = globalThis.btoa(rawHost).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-     
-     const url = new URL(request.url);
-     url.searchParams.set('host', host);
-     return NextResponse.redirect(url);
-  }
-
   const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
   const cspHeader = `
     default-src 'self' https: data:;

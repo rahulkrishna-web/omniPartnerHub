@@ -17,47 +17,28 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const url = new URL(window.location.href);
-      let host = url.searchParams.get("host");
-      const shop = url.searchParams.get("shop");
-
-      // Auto-fix missing host param if shop is present
-      if (!host && shop) {
-        const shopName = shop.replace(".myshopify.com", "");
-        const rawHost = `admin.shopify.com/store/${shopName}`;
-        host = btoa(rawHost).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); // URL-safe base64
-        url.searchParams.set("host", host);
-        window.history.replaceState({}, "", url.toString());
-        console.log("Patched missing host parameter:", host);
-      }
-
+  useEffect(() => {
+    if (typeof window !== "undefined") {
       console.log("Checking for shopify global...", window.shopify);
-      console.log("Current location:", window.location.href);
-      console.log("Host param:", host);
-
-      // TRUST HOST: If we have a host parameter, assume we are embedded and ready to render.
-      // This bypasses the 'window.shopify' check blocking the UI if the script is slow or silent.
-      if (host) {
-        setAppBridgeReady(true);
-      }
 
       if (window.shopify) {
         setAppBridgeReady(true);
       } else {
-        // Poll for shopify global just to log availability
+        // Poll for shopify global
         const interval = setInterval(() => {
           if (window.shopify) {
-             // setAppBridgeReady(true); // Already set by host check
-             console.log("Shopify global detected via polling");
+             setAppBridgeReady(true);
              clearInterval(interval);
           }
         }, 100);
         
-        // Timeout after 5 seconds - only warn now
+        // Timeout after 5 seconds
         const timeout = setTimeout(() => {
            clearInterval(interval);
            if (!window.shopify) {
-               console.warn("App Bridge global not detected after 5s, but rendering based on host param.");
+             // If still missing, we set error
+             console.error("App Bridge initialization timed out.");
+             setInitError(true);
            }
         }, 5000);
 
@@ -66,6 +47,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
             clearTimeout(timeout);
         };
       }
+    }
+  }, []);
     }
   }, []);
 

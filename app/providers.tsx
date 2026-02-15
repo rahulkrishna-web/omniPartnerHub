@@ -36,14 +36,14 @@ export function Providers({ children }: { children: React.ReactNode }) {
           }
         }, 100);
         
-        // Timeout after 5 seconds
+        // Timeout after 2 seconds - force render anyway
         const timeout = setTimeout(() => {
            clearInterval(interval);
            if (!window.shopify) {
-             console.error("App Bridge initialization timed out.");
-             // We don't block here anymore to show debug UI if needed
+             console.warn("App Bridge initialization timed out. Forcing render.");
+             setAppBridgeReady(true);
            }
-        }, 5000);
+        }, 2000);
 
         return () => {
             clearInterval(interval);
@@ -57,42 +57,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const [shop, setShop] = useState("");
 
   if (!appBridgeReady) {
-    const isBrowser = typeof window !== "undefined";
-    const currentUrl = isBrowser ? window.location.href : "";
-    const urlObj = isBrowser ? new URL(window.location.href) : null;
-    const currentHost = urlObj?.searchParams.get("host");
-    const currentShop = urlObj?.searchParams.get("shop");
-
     return (
       <AppProvider i18n={translations}>
-        <div style={{ padding: 20, fontFamily: 'system-ui' }}>
-            <h2>App Bridge Loading...</h2>
-            <div style={{ marginTop: 20, padding: 10, background: '#f5f5f5', borderRadius: 4, fontSize: 12 }}>
-                <p><strong>Status:</strong> Waiting for window.shopify...</p>
-                <p><strong>Current URL:</strong> {currentUrl}</p>
-                <p><strong>Host Param:</strong> {currentHost || "MISSING"}</p>
-                <p><strong>Shop Param:</strong> {currentShop || "MISSING"}</p>
-                <p style={{marginTop: 10}}>
-                    <button 
-                         onClick={() => {
-                            if (currentShop && !currentHost) {
-                                const shopName = currentShop.replace(".myshopify.com", "");
-                                const rawHost = `admin.shopify.com/store/${shopName}`;
-                                const newHost = btoa(rawHost).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-                                const newUrl = new URL(window.location.href);
-                                newUrl.searchParams.set("host", newHost);
-                                window.location.href = newUrl.toString();
-                            } else {
-                                window.location.reload();
-                            }
-                         }}
-                         style={{ padding: '8px 16px', background: '#008060', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer' }}
-                    >
-                        {currentShop && !currentHost ? "Fix Host & Reload" : "Reload Page"}
-                    </button>
-                </p>
-                <p style={{marginTop: 10, color: 'red'}}>If this screen persists, please share a screenshot of this debug info.</p>
-            </div>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', flexDirection: 'column', gap: '10px' }}>
+            <div>Loading OmniPartner Hub...</div>
+            <div style={{fontSize: '0.8em', color: '#666'}}>Initializing App Bridge</div>
         </div>
       </AppProvider>
     );

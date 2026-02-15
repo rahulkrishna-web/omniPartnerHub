@@ -14,7 +14,13 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Missing shop parameter" }, { status: 400 });
     }
 
-    const sanitizedShop = shopify.utils.sanitizeShop(shop);
+    let shopToSanitize = shop;
+    if (!shopToSanitize.includes(".")) {
+        shopToSanitize += ".myshopify.com";
+    }
+    // Simple sanitization fallback if utils fail or purely rely on shopify-api
+    const sanitizedShop = shopify.utils.sanitizeShop(shopToSanitize);
+
     if (!sanitizedShop) {
       return NextResponse.json({ error: "Invalid shop parameter" }, { status: 400 });
     }

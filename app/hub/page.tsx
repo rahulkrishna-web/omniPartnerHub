@@ -1,3 +1,5 @@
+"use client";
+
 import { AppNavigation } from "../components/app-navigation";
 import { Page, Layout, Card, Text, EmptyState } from "@shopify/polaris";
 

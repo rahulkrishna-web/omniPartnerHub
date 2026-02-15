@@ -1,3 +1,5 @@
+"use client";
+
 import { ProductList } from "../components/product-list";
 import { AppNavigation } from "../components/app-navigation";
 import { Page } from "@shopify/polaris";

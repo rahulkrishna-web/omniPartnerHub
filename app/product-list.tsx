@@ -20,19 +20,19 @@ import {
 } from "@shopify/polaris";
 // ... existing imports
 
+import { createApp } from "@shopify/app-bridge";
+import { getSessionToken } from "@shopify/app-bridge/utilities";
+
 // Helper to get session token safely
-async function getSessionToken(app: any) {
-  if (typeof window !== "undefined" && window.shopify && window.shopify.id) {
-    try {
-        const token = await window.shopify.id.getSessionToken();
-        console.log("Debug: getSessionToken success", token ? "Yes" : "No");
-        return token;
-    } catch (e) {
-        console.error("Debug: Failed to get session token:", e);
-        return null;
-    }
+async function getSessionTokenFromApp(app: any) {
+  try {
+    const token = await getSessionToken(app);
+    console.log("Debug: getSessionTokenFromApp success", token ? "Yes" : "No");
+    return token;
+  } catch (e) {
+    console.error("Debug: Failed to get session token:", e);
+    return null;
   }
-  return null;
 }
 
 export function ProductList() {
@@ -41,6 +41,28 @@ export function ProductList() {
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [shop, setShop] = useState<string>("");
+  const [app, setApp] = useState<any>(null); // Store App Bridge instance
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+        const url = new URL(window.location.href);
+        const shopParam = url.searchParams.get("shop");
+        const hostParam = url.searchParams.get("host");
+        
+        if (shopParam) setShop(shopParam);
+
+        if (hostParam) {
+            const apiKey = process.env.NEXT_PUBLIC_SHOPIFY_API_KEY;
+            if (apiKey) {
+                const appInstance = createApp({
+                    apiKey: apiKey,
+                    host: hostParam,
+                });
+                setApp(appInstance);
+            }
+        }
+    }
+  }, []);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -54,7 +76,12 @@ export function ProductList() {
     setLoading(true);
     setError(null);
     try {
-      const token = await getSessionToken(window.shopify);
+      if (!app) {
+         console.warn("App Bridge not initialized yet");
+         // Retry or just continue? Let's check window.shopify as fallback?
+         // No, let's wait for app.
+      }
+      const token = app ? await getSessionTokenFromApp(app) : null;
       console.log("Debug: Session Token for fetchProducts:", token ? "Present" : "Missing");
       
       const headers: any = {
@@ -95,7 +122,7 @@ export function ProductList() {
     setSyncing(true);
     setError(null);
     try {
-        const token = await getSessionToken(window.shopify);
+        const token = app ? await getSessionTokenFromApp(app) : null;
         console.log("Debug: Session Token for handleSync:", token ? "Present" : "Missing");
 
         const headers: any = {

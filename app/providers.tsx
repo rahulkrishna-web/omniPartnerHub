@@ -30,6 +30,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
       console.log("Debug Params:", { host, shop: shopParam, href: window.location.href, apiKeyPresent: !!apiKey });
 
       console.log("Checking for shopify global...", window.shopify);
+      if (window.shopify) {
+          console.log("Debug: shopify keys:", Object.keys(window.shopify));
+          console.log("Debug: shopify config:", window.shopify.config);
+          console.log("Debug: shopify id available:", !!window.shopify.id);
+      }
 
       if (window.shopify) {
         setAppBridgeReady(true);

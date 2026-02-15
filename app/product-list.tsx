@@ -11,16 +11,25 @@ import {
   Thumbnail,
   Badge,
   Button,
+  import {
+  Page,
+  Layout,
+  Card,
+  ResourceList,
+  ResourceItem,
+  Text,
+  Thumbnail,
+  Badge,
+  Button,
   TextField,
   BlockStack, // Use BlockStack instead of Stack (deprecated) or LegacyStack
   InlineStack,
   Banner,
-  ButtonGroup
+  ButtonGroup,
+  EmptyState
 } from "@shopify/polaris";
-import { useAppBridge } from "@shopify/app-bridge-react";
-import { getSessionToken } from "@shopify/app-bridge-utils"; // Check if this package is needed or if app-bridge-react exports it
-// Actually getSessionToken is in @shopify/app-bridge-utils usually, but let's check imports.
-// Modern App Bridge might use `useAppBridge` hook to get the app instance, then `getSessionToken(app)`.
+
+// ... existing imports
 
 export function ProductList() {
   const app = useAppBridge();
@@ -35,32 +44,62 @@ export function ProductList() {
 
   async function fetchProducts() {
     setLoading(true);
+    setError(null);
     try {
-      // Use standard fetch. The App Bridge middleware (if used) handles headers, or we pass token manually.
-      // Since we don't have the token middleware set up in Next.js config yet, we need to rely on the session cookie if strictly online
-      // OR we fetch token and pass it.
-      // For this MVP step 1: Let's try simple fetch, assuming session cookie is set from OAuth flow (isOnline: true in our OAuth).
       const res = await fetch("/api/products");
+      
+      if (!res.ok) {
+        if (res.status === 401) {
+            throw new Error("Unauthorized. Try reloading the app.");
+        }
+        throw new Error(`API Error: ${res.statusText}`);
+      }
+
       const data = await res.json();
       if (data.products) {
         setProducts(data.products);
+      } else if (data.error) {
+         setError(data.error);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      setError(err.message || "Failed to load products");
     }
     setLoading(false);
   }
 
   async function handleSync() {
     setSyncing(true);
-    await fetch("/api/products/sync", { method: "POST" });
-    await fetchProducts();
+    setError(null);
+    try {
+        const res = await fetch("/api/products/sync", { method: "POST" });
+        if (!res.ok) {
+             throw new Error("Sync failed. Check console.");
+        }
+        await fetchProducts();
+    } catch (err: any) {
+        setError(err.message);
+    }
     setSyncing(false);
   }
 
   useEffect(() => {
     fetchProducts();
   }, []);
+
+  const emptyStateMarkup = (
+    <EmptyState
+      heading="No products found"
+      action={{
+        content: 'Sync products',
+        onAction: handleSync,
+        loading: syncing
+      }}
+      image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
+    >
+      <p>Sync your products from Shopify to allow Partners to see them.</p>
+    </EmptyState>
+  );
 
   return (
     <Page
@@ -73,10 +112,16 @@ export function ProductList() {
     >
       <Layout>
         <Layout.Section>
+          {error && (
+            <Banner tone="critical" onDismiss={() => setError(null)}>
+              <p>{error}</p>
+            </Banner>
+          )}
           <Card>
             <ResourceList
               resourceName={{ singular: "product", plural: "products" }}
               items={products}
+              emptyState={emptyStateMarkup}
               renderItem={(item) => {
                 const { id, title, image, vendor, exchange } = item;
                 const media = (

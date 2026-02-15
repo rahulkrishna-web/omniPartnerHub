@@ -20,25 +20,49 @@ import {
 } from "@shopify/polaris";
 // ... existing imports
 
+// Helper to get session token safely
+async function getSessionToken(app: any) {
+  if (typeof window !== "undefined" && window.shopify && window.shopify.id) {
+    try {
+        return await window.shopify.id.getSessionToken();
+    } catch (e) {
+        console.warn("Failed to get session token:", e);
+        return null;
+    }
+  }
+  return null;
+}
+
 export function ProductList() {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
-  const [editingProductId, setEditingProductId] = useState<string | null>(null);
-  const [editedIsPublic, setEditedIsPublic] = useState<boolean | null>(null);
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [shop, setShop] = useState<string>("");
 
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+        const url = new URL(window.location.href);
+        const shopParam = url.searchParams.get("shop");
+        if (shopParam) setShop(shopParam);
+    }
+  }, []);
 
   async function fetchProducts() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/products");
+      const token = await getSessionToken(window.shopify);
+      const headers: any = {};
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
+      const res = await fetch("/api/products", { headers });
       
       if (!res.ok) {
         if (res.status === 401) {
-            throw new Error("Unauthorized. Try reloading the app.");
+            throw new Error("Unauthorized");
         }
         throw new Error(`API Error: ${res.statusText}`);
       }
@@ -51,7 +75,11 @@ export function ProductList() {
       }
     } catch (err: any) {
       console.error(err);
-      setError(err.message || "Failed to load products");
+      if (err.message === "Unauthorized") {
+          setError("Unauthorized");
+      } else {
+          setError(err.message || "Failed to load products");
+      }
     }
     setLoading(false);
   }
@@ -60,7 +88,13 @@ export function ProductList() {
     setSyncing(true);
     setError(null);
     try {
-        const res = await fetch("/api/products/sync", { method: "POST" });
+        const token = await getSessionToken(window.shopify);
+        const headers: any = {};
+        if (token) {
+            headers["Authorization"] = `Bearer ${token}`;
+        }
+
+        const res = await fetch("/api/products/sync", { method: "POST", headers });
         if (!res.ok) {
              throw new Error("Sync failed. Check console.");
         }
@@ -101,8 +135,25 @@ export function ProductList() {
       <Layout>
         <Layout.Section>
           {error && (
-            <Banner tone="critical" onDismiss={() => setError(null)}>
-              <p>{error}</p>
+            <Banner 
+                tone="critical" 
+                onDismiss={() => setError(null)}
+                title={error === "Unauthorized" ? "Authentication Failed" : "Error"}
+            >
+              <p>
+                {error === "Unauthorized" 
+                    ? "The app could not authenticate with Shopify. This usually happens if cookies are blocked or the session expired." 
+                    : error}
+              </p>
+              {error === "Unauthorized" && shop && (
+                  <div style={{marginTop: 10}}>
+                    <Button onClick={() => {
+                        window.open(`/api/auth?shop=${shop}`, '_top');
+                    }}>
+                        Re-authenticate
+                    </Button>
+                  </div>
+              )}
             </Banner>
           )}
           <Card>

@@ -98,12 +98,14 @@ export function ProductList() {
       const res = await fetch("/api/products", { headers });
       
       if (!res.ok) {
-        if (res.status === 401) {
-            throw new Error("Unauthorized");
+        const errorData = await res.json().catch(() => ({}));
+        console.log("Debug: API Error Response:", res.status, errorData);
+        if (errorData.error) {
+            throw new Error(errorData.error);
         }
-        throw new Error(`API Error: ${res.statusText}`);
+        throw new Error(`API Error: ${res.status} ${res.statusText}`);
       }
-
+      
       const data = await res.json();
       if (data.products) {
         setProducts(data.products);

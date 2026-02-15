@@ -1,6 +1,8 @@
 import { shopify } from "@/lib/shopify";
 import { NextResponse } from "next/server";
 
+export const dynamic = 'force-dynamic';
+
 // ... imports
 
 export async function GET(request: Request) {

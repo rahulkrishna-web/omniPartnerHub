@@ -4,6 +4,8 @@ import { products, productExchange, shops } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request) {
   // Session validation
   const sessionId = await shopify.session.getCurrentId({ isOnline: true, rawRequest: request });

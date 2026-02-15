@@ -1,5 +1,7 @@
 import { shopify } from "@/lib/shopify";
 import { NextResponse } from "next/server";
+
+export const dynamic = 'force-dynamic';
 import { db } from "@/lib/db";
 import { shops } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";

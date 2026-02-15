@@ -1,6 +1,7 @@
 {
-  "name": "temp-app",
+  "name": "omni-partner-hub",
   "version": "0.1.0",
+  "description": "Multi-tenant Shopify B2B ecosystem connecting Suppliers and Partners efficiently.",
   "private": true,
   "scripts": {
     "dev": "next dev",

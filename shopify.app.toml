@@ -1,9 +1,9 @@
 # This file stores configurations for your Shopify app.
 
-client_id = "SHOPIFY_API_KEY"
+client_id = "787004965ebcb8f96b74c7672b3e7590"
 name = "OmniPartner Hub"
 handle = "omnipartner-hub"
-application_url = "https://example.com"
+application_url = "https://omni-partner-hub.vercel.app"
 embedded = true
 
 [webhooks]
@@ -11,8 +11,8 @@ api_version = "2024-04"
 
 [auth]
 redirect_urls = [
-  "https://example.com/api/auth/callback",
-  "https://example.com/api/auth/token"
+  "https://omni-partner-hub.vercel.app/api/auth/callback",
+  "https://omni-partner-hub.vercel.app/api/auth/token"
 ]
 
 [pos]

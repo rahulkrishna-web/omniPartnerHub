@@ -1,6 +1,15 @@
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import "./globals.css";
+import { Providers } from "./providers";
 import Script from "next/script";
 
-// ...
+const inter = Inter({ subsets: ["latin"] });
+
+export const metadata: Metadata = {
+  title: "OmniPartner Hub",
+  description: "B2B Ecosystem for Shopify",
+};
 
 export default function RootLayout({
   children,

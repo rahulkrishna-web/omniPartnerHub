@@ -3,23 +3,45 @@
 import { AppProvider } from "@shopify/polaris";
 import "@shopify/polaris/build/esm/styles.css";
 import translations from "@shopify/polaris/locales/en.json";
-// import { AppProvider as AppBridgeProvider } from "@shopify/app-bridge-react"; // v4
 import { useState, useEffect } from "react";
 
+// Extend window interface to avoid TS error
+declare global {
+  interface Window {
+    shopify?: any;
+  }
+}
+
 export function Providers({ children }: { children: React.ReactNode }) {
-  const [config, setConfig] = useState<{ apiKey: string; host: string } | null>(null);
+  const [appBridgeReady, setAppBridgeReady] = useState(false);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const urlParams = new URLSearchParams(window.location.search);
-      const host = urlParams.get("host");
-      const apiKey = process.env.NEXT_PUBLIC_SHOPIFY_API_KEY;
-
-      if (host && apiKey) {
-        setConfig({ apiKey, host });
+      if (window.shopify) {
+        setAppBridgeReady(true);
+      } else {
+        // Poll for shopify global
+        const interval = setInterval(() => {
+          if (window.shopify) {
+            setAppBridgeReady(true);
+            clearInterval(interval);
+          }
+        }, 100);
+        return () => clearInterval(interval);
       }
     }
   }, []);
+
+  if (!appBridgeReady) {
+    return (
+      <AppProvider i18n={translations}>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+            {/* Optional: Add a spinner here */}
+            Loading...
+        </div>
+      </AppProvider>
+    );
+  }
 
   return (
     <AppProvider i18n={translations}>

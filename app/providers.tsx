@@ -3,7 +3,7 @@
 import { AppProvider } from "@shopify/polaris";
 import "@shopify/polaris/build/esm/styles.css";
 import translations from "@shopify/polaris/locales/en.json";
-import { Provider as AppBridgeProvider } from "@shopify/app-bridge-react";
+// import { AppProvider as AppBridgeProvider } from "@shopify/app-bridge-react"; // v4
 import { useState, useEffect } from "react";
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -21,18 +21,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // If we are not in an iframe or don't have host/apiKey, we might render basic children or a loader
-  // For simplicity, we wrap with Polaris always. App Bridge only if config exists.
-
   return (
     <AppProvider i18n={translations}>
-      {config ? (
-        <AppBridgeProvider config={config}>
-          {children}
-        </AppBridgeProvider>
-      ) : (
-        <>{children}</>
-      )}
+        {children}
     </AppProvider>
   );
 }

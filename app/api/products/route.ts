@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
   // Session validation
-  const sessionId = await shopify.session.getCurrentId({ isOnline: true, rawRequest: request });
+  const sessionId = await shopify.session.getCurrentId({ isOnline: false, rawRequest: request });
   if (!sessionId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -50,7 +50,7 @@ export async function GET(request: Request) {
 
 export async function PUT(request: Request) {
   // Update Product Exchange Settings
-  const sessionId = await shopify.session.getCurrentId({ isOnline: true, rawRequest: request });
+  const sessionId = await shopify.session.getCurrentId({ isOnline: false, rawRequest: request });
   if (!sessionId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

@@ -9,12 +9,12 @@ import { handleProductUpdate } from "@/lib/webhooks/product-handlers";
 
 export async function POST(request: Request) {
   try {
-    const session = await shopify.session.getCurrentId({ isOnline: true, rawRequest: request });
+    const session = await shopify.session.getCurrentId({ isOnline: false, rawRequest: request });
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const sessionId = await shopify.session.getCurrentId({ isOnline: true, rawRequest: request });
+    const sessionId = await shopify.session.getCurrentId({ isOnline: false, rawRequest: request });
     const sessionData = await sessionStorage.loadSession(sessionId!);
 
     if (!sessionData) {

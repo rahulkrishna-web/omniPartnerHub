@@ -12,21 +12,21 @@ export default function SettingsPage() {
               <Card>
                 <BlockStack gap="200">
                   <Text variant="headingMd" as="h3">General Settings</Text>
-                  <Text variant="bodySm" tone="subdued">Configure your app preferences</Text>
+                  <Text variant="bodySm" as="p" color="subdued">Configure your app preferences</Text>
                 </BlockStack>
               </Card>
               
               <Card>
                 <BlockStack gap="200">
                   <Text variant="headingMd" as="h3">Commission Settings</Text>
-                  <Text variant="bodySm" tone="subdued">Set default commission rates</Text>
+                  <Text variant="bodySm" as="p" color="subdued">Set default commission rates</Text>
                 </BlockStack>
               </Card>
               
               <Card>
                 <BlockStack gap="200">
                   <Text variant="headingMd" as="h3">Notifications</Text>
-                  <Text variant="bodySm" tone="subdued">Manage notification preferences</Text>
+                  <Text variant="bodySm" as="p" color="subdued">Manage notification preferences</Text>
                 </BlockStack>
               </Card>
             </BlockStack>

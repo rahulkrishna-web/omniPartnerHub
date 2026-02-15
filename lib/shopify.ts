@@ -19,4 +19,5 @@ export const shopify = shopifyApi({
   webhooks: {
     path: "/api/webhooks",
   },
+  sessionStorage: sessionStorage,
 });

@@ -3,6 +3,8 @@ import { db } from "@/lib/db";
 import { shops } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
+
+export const dynamic = 'force-dynamic';
 import { handleProductUpdate } from "@/lib/webhooks/product-handlers";
 
 export async function POST(request: Request) {

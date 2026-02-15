@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
-import Script from "next/script";
+// import Script from "next/script"; // Removed to use standard script tag
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -21,11 +21,7 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <meta name="shopify-api-key" content={apiKey} />
-        <Script 
-          src="https://cdn.shopify.com/shopify-cloud/app-bridge.js" 
-          data-api-key={apiKey} 
-          strategy="beforeInteractive" 
-        />
+        <script src="https://cdn.shopify.com/shopify-cloud/app-bridge.js" data-api-key={apiKey}></script>
       </head>
       <body className={inter.className}>
         <Providers>{children}</Providers>

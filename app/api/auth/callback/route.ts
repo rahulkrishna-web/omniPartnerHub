@@ -12,7 +12,18 @@ export async function GET(request: Request) {
 
     const { session } = callbackResponse;
 
-    // Update shop record (Session storage handles the token, but we track installation status here)
+    // Register Webhooks
+    const webhookResponse = await shopify.webhooks.register({
+      session,
+    });
+
+    if (!webhookResponse["PRODUCTS_UPDATE"]?.[0]?.success) {
+      console.error("Failed to register PRODUCTS_UPDATE webhook", webhookResponse);
+    } else {
+        console.log("Registered PRODUCTS_UPDATE webhook");
+    }
+
+     // Update shop record (Session storage handles the token, but we track installation status here)
     await db
       .insert(shops)
       .values({

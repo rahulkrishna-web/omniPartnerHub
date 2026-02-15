@@ -16,4 +16,7 @@ export const shopify = shopifyApi({
   hostName: process.env.SHOPIFY_APP_URL ? process.env.SHOPIFY_APP_URL.replace(/https:\/\//, "") : "localhost",
   apiVersion: ApiVersion.April24,
   isEmbeddedApp: true,
+  webhooks: {
+    path: "/api/webhooks",
+  },
 });

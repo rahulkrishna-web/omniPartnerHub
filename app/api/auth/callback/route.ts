@@ -14,6 +14,19 @@ export async function GET(request: Request) {
 
     const { session } = callbackResponse;
 
+    // Verify session storage
+    if (shopify.config.sessionStorage) {
+        console.log("Debug Callback: Explicitly storing session...", session.id);
+        const stored = await shopify.config.sessionStorage.storeSession(session);
+        if (!stored) {
+             console.error("Debug Callback: Failed to store session explicitely.");
+        } else {
+             console.log("Debug Callback: Session stored successfully.");
+        }
+    } else {
+        console.error("Debug Callback: No sessionStorage configured on shopify client!");
+    }
+    
     // Register Webhooks
     const webhookResponse = await shopify.webhooks.register({
       session,

@@ -39,7 +39,7 @@ export default function DashboardPage() {
               <Card>
                 <BlockStack gap="200">
                   <Text variant="headingMd" as="h3">Recent Activity</Text>
-                  <Text variant="bodySm" as="p" color="subdued">No recent activity</Text>
+                  <Text variant="bodySm" as="p">No recent activity</Text>
                 </BlockStack>
               </Card>
             </BlockStack>

@@ -21,19 +21,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       const host = url.searchParams.get("host");
       const shop = url.searchParams.get("shop");
 
-      // Auto-fix missing host param: FORCE RELOAD with host
-      if (!host && shop) {
-        const shopName = shop.replace(".myshopify.com", "");
-        const rawHost = `admin.shopify.com/store/${shopName}`;
-        const newHost = btoa(rawHost).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-        
-        url.searchParams.set("host", newHost);
-        console.log("Missing host. Forcing reload with:", url.toString());
-        
-        // Use window.location.href to force a full page reload so App Bridge script reads the new URL
-        window.location.href = url.toString();
-        return;
-      }
+      console.log("Debug Params:", { host, shop, href: window.location.href });
 
       console.log("Checking for shopify global...", window.shopify);
 
@@ -52,9 +40,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
         const timeout = setTimeout(() => {
            clearInterval(interval);
            if (!window.shopify) {
-             // If still missing, we set error
              console.error("App Bridge initialization timed out.");
-             setInitError(true);
+             // We don't block here anymore to show debug UI if needed
            }
         }, 5000);
 
@@ -67,80 +54,45 @@ export function Providers({ children }: { children: React.ReactNode }) {
   }, []);
 
   const [initError, setInitError] = useState(false);
-
   const [shop, setShop] = useState("");
 
-  if (initError) {
-      return (
-        <AppProvider i18n={translations}>
-            <div style={{ 
-                height: '100vh', 
-                display: 'flex', 
-                justifyContent: 'center', 
-                alignItems: 'center',
-                background: '#f1f2f3'
-            }}>
-                <div style={{ width: 400, padding: 20, background: 'white', borderRadius: 8, boxShadow: '0 0 10px rgba(0,0,0,0.1)' }}>
-                    <h2 style={{ marginBottom: 20, fontSize: 20, fontWeight: 'bold' }}>Install OmniPartner Hub</h2>
-                    <p style={{ marginBottom: 20, color: '#666' }}>
-                        It looks like you are opening this app outside of the Shopify Admin. 
-                        Enter your shop domain below to install or log in.
-                    </p>
-                    {/* Using standard HTML/Tailwind-ish styles for simplicity in this fallback view, 
-                        since Polaris might rely on some context we want to be careful with, 
-                        though AppProvider is wrapping it. */}
-                    <input 
-                        type="text" 
-                        placeholder="my-store.myshopify.com" 
-                        value={shop}
-                        onChange={(e) => setShop(e.target.value)}
-                        style={{
-                            width: '100%',
-                            padding: '10px',
-                            marginBottom: '10px',
-                            border: '1px solid #ccc',
-                            borderRadius: 4
-                        }}
-                    />
-                    <button 
-                        onClick={() => {
-                            if (shop) {
-                                let domain = shop;
-                                if (!domain.includes(".")) {
-                                    domain += ".myshopify.com";
-                                }
-                                window.location.href = `/api/auth?shop=${domain}`;
-                            }
-                        }}
-                        style={{
-                            width: '100%',
-                            padding: '10px',
-                            background: '#008060',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: 4,
-                            cursor: 'pointer',
-                            fontWeight: 'bold'
-                        }}
-                    >
-                        Install App
-                    </button>
-                    {process.env.NEXT_PUBLIC_SHOPIFY_API_KEY && (
-                        <p style={{ marginTop: 20, fontSize: 12, color: '#999', textAlign: 'center' }}>
-                            API Key Detected: Yes ({process.env.NEXT_PUBLIC_SHOPIFY_API_KEY.slice(0,4)}...)
-                        </p>
-                    )}
-                </div>
-            </div>
-        </AppProvider>
-      );
-  }
-
   if (!appBridgeReady) {
+    const isBrowser = typeof window !== "undefined";
+    const currentUrl = isBrowser ? window.location.href : "";
+    const urlObj = isBrowser ? new URL(window.location.href) : null;
+    const currentHost = urlObj?.searchParams.get("host");
+    const currentShop = urlObj?.searchParams.get("shop");
+
     return (
       <AppProvider i18n={translations}>
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-            Loading App Bridge...
+        <div style={{ padding: 20, fontFamily: 'system-ui' }}>
+            <h2>App Bridge Loading...</h2>
+            <div style={{ marginTop: 20, padding: 10, background: '#f5f5f5', borderRadius: 4, fontSize: 12 }}>
+                <p><strong>Status:</strong> Waiting for window.shopify...</p>
+                <p><strong>Current URL:</strong> {currentUrl}</p>
+                <p><strong>Host Param:</strong> {currentHost || "MISSING"}</p>
+                <p><strong>Shop Param:</strong> {currentShop || "MISSING"}</p>
+                <p style={{marginTop: 10}}>
+                    <button 
+                         onClick={() => {
+                            if (currentShop && !currentHost) {
+                                const shopName = currentShop.replace(".myshopify.com", "");
+                                const rawHost = `admin.shopify.com/store/${shopName}`;
+                                const newHost = btoa(rawHost).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+                                const newUrl = new URL(window.location.href);
+                                newUrl.searchParams.set("host", newHost);
+                                window.location.href = newUrl.toString();
+                            } else {
+                                window.location.reload();
+                            }
+                         }}
+                         style={{ padding: '8px 16px', background: '#008060', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer' }}
+                    >
+                        {currentShop && !currentHost ? "Fix Host & Reload" : "Reload Page"}
+                    </button>
+                </p>
+                <p style={{marginTop: 10, color: 'red'}}>If this screen persists, please share a screenshot of this debug info.</p>
+            </div>
         </div>
       </AppProvider>
     );

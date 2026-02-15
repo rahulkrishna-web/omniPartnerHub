@@ -18,6 +18,7 @@ import {
   ButtonGroup,
   EmptyState
 } from "@shopify/polaris";
+import { useAppBridge } from "@shopify/app-bridge-react";
 
 // ... existing imports
 

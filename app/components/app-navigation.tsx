@@ -1,59 +1,57 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
-import { Tabs } from "@shopify/polaris";
-import { useCallback, useMemo } from "react";
+import { usePathname } from "next/navigation";
+import { useEffect } from "react";
 
 export function AppNavigation() {
   const pathname = usePathname();
-  const router = useRouter();
 
-  const tabs = useMemo(
-    () => [
-      {
-        id: "dashboard",
-        content: "Dashboard",
-        path: "/",
-      },
-      {
-        id: "products",
-        content: "My Products",
-        path: "/products",
-      },
-      {
-        id: "hub",
-        content: "Product Hub",
-        path: "/hub",
-      },
-      {
-        id: "partners",
-        content: "Partners",
-        path: "/partners",
-      },
-      {
-        id: "settings",
-        content: "Settings",
-        path: "/settings",
-      },
-    ],
-    []
-  );
+  useEffect(() => {
+    // Configure App Nav via window.shopify
+    if (typeof window !== "undefined" && window.shopify) {
+      const config = {
+        children: [
+          {
+            role: "menu",
+            children: [
+              {
+                label: "Dashboard",
+                href: "/",
+                selected: pathname === "/",
+              },
+              {
+                label: "My Products",
+                href: "/products",
+                selected: pathname === "/products",
+              },
+              {
+                label: "Product Hub",
+                href: "/hub",
+                selected: pathname === "/hub",
+              },
+              {
+                label: "Partners",
+                href: "/partners",
+                selected: pathname === "/partners",
+              },
+              {
+                label: "Settings",
+                href: "/settings",
+                selected: pathname === "/settings",
+              },
+            ],
+          },
+        ],
+      };
 
-  const selectedTab = useMemo(() => {
-    const index = tabs.findIndex((tab) => tab.path === pathname);
-    return index >= 0 ? index : 0;
-  }, [pathname, tabs]);
+      // Set app nav configuration
+      if (window.shopify.config) {
+        window.shopify.config({
+          children: config.children,
+        });
+      }
+    }
+  }, [pathname]);
 
-  const handleTabChange = useCallback(
-    (selectedTabIndex: number) => {
-      router.push(tabs[selectedTabIndex].path);
-    },
-    [router, tabs]
-  );
-
-  return (
-    <Tabs tabs={tabs} selected={selectedTab} onSelect={handleTabChange}>
-      {/* Children will be rendered by the page */}
-    </Tabs>
-  );
+  return null; // App Nav is rendered by Shopify
 }

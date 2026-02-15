@@ -21,7 +21,11 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <meta name="shopify-api-key" content={apiKey} />
-        <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js" data-api-key={apiKey}></script>
+        <script
+          src="https://cdn.shopify.com/shopifycloud/app-bridge.js"
+          data-api-key={process.env.NEXT_PUBLIC_SHOPIFY_API_KEY}
+        />
+        <script src="https://cdn.shopify.com/shopifycloud/app-bridge/actions/navigation/app-nav.js" />
       </head>
       <body className={inter.className}>
         <Providers>{children}</Providers>

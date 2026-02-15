@@ -53,7 +53,12 @@ export function ProductList() {
     setError(null);
     try {
       const token = await getSessionToken(window.shopify);
-      const headers: any = {};
+      console.log("Debug: Session Token for fetchProducts:", token ? "Present" : "Missing");
+      
+      const headers: any = {
+        'Content-Type': 'application/json'
+      };
+      
       if (token) {
         headers["Authorization"] = `Bearer ${token}`;
       }
@@ -89,7 +94,12 @@ export function ProductList() {
     setError(null);
     try {
         const token = await getSessionToken(window.shopify);
-        const headers: any = {};
+        console.log("Debug: Session Token for handleSync:", token ? "Present" : "Missing");
+
+        const headers: any = {
+            'Content-Type': 'application/json'
+        };
+        
         if (token) {
             headers["Authorization"] = `Bearer ${token}`;
         }

@@ -24,9 +24,11 @@ import {
 async function getSessionToken(app: any) {
   if (typeof window !== "undefined" && window.shopify && window.shopify.id) {
     try {
-        return await window.shopify.id.getSessionToken();
+        const token = await window.shopify.id.getSessionToken();
+        console.log("Debug: getSessionToken success", token ? "Yes" : "No");
+        return token;
     } catch (e) {
-        console.warn("Failed to get session token:", e);
+        console.error("Debug: Failed to get session token:", e);
         return null;
     }
   }

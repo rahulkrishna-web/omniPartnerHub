@@ -18,12 +18,9 @@ import {
   ButtonGroup,
   EmptyState
 } from "@shopify/polaris";
-import { useAppBridge } from "@shopify/app-bridge-react";
-
 // ... existing imports
 
 export function ProductList() {
-  const app = useAppBridge();
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);

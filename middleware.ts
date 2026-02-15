@@ -4,25 +4,27 @@ import type { NextRequest } from 'next/server';
 export function middleware(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const shop = searchParams.get('shop');
-  const host = searchParams.get('host');
+  let host = searchParams.get('host');
 
-  // If we have a shop but no host, and we are not in the auth flow,
-  // we might need to redirect to auth to ensure we get the full params from Shopify.
-  // HOWEVER, simplified:
-  // If we are hitting the root / and missing host, we might be in trouble.
-  // But wait, if we are in admin, Shopify sends host.
-  // If we are missing host, it means we are outside admin OR next.js stripped it?
-  
-  // Actually, creating a middleware that just logs for now to Vercel logs is best step 1.
-  // But to fix the issue:
-  // We ensure strictly that we don't strip params. Next.js doesn't do it by default.
-  
-  // Let's implement a basic CSP header setting here as well, as some browsers block iframes without it.
-  
+  // Auto-fix missing host param: Redirect to URL with host if shop is present
+  if (shop && !host) {
+     const shopName = shop.replace(".myshopify.com", "");
+     const rawHost = `admin.shopify.com/store/${shopName}`;
+     // manual base64 encoding (Buffer is not available in Edge runtime usually, but we can use btoa behavior if needed or a polyfill, 
+     // but actually Vercel Edge supports Buffer? No.
+     // We need to use standard btoa but that's for strings.
+     // In Edge Middleware, we can use globalThis.btoa
+     host = globalThis.btoa(rawHost).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+     
+     const url = new URL(request.url);
+     url.searchParams.set('host', host);
+     return NextResponse.redirect(url);
+  }
+
   const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
   const cspHeader = `
     default-src 'self' https: data:;
-    script-src 'self' https: 'unsafe-inline' 'unsafe-eval';
+    script-src 'self' https: 'unsafe-inline' 'unsafe-eval' https://cdn.shopify.com;
     style-src 'self' https: 'unsafe-inline';
     img-src 'self' data: https:;
     font-src 'self' data: https:;

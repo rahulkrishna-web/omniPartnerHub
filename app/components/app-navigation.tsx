@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { Navigation } from "@shopify/polaris";
-import { HomeMajor, ProductsMajor, CollectionsMajor, CustomersMajor, SettingsMajor } from "@shopify/polaris-icons";
+import { HomeIcon, ProductIcon, CollectionIcon, CustomersIcon, SettingsIcon } from "@shopify/polaris-icons";
 
 export function AppNavigation() {
   const pathname = usePathname();
@@ -14,31 +14,31 @@ export function AppNavigation() {
         items={[
           {
             label: "Dashboard",
-            icon: HomeMajor,
+            icon: HomeIcon,
             onClick: () => router.push("/"),
             selected: pathname === "/",
           },
           {
             label: "My Products",
-            icon: ProductsMajor,
+            icon: ProductIcon,
             onClick: () => router.push("/products"),
             selected: pathname === "/products",
           },
           {
             label: "Product Hub",
-            icon: CollectionsMajor,
+            icon: CollectionIcon,
             onClick: () => router.push("/hub"),
             selected: pathname === "/hub",
           },
           {
             label: "Partners",
-            icon: CustomersMajor,
+            icon: CustomersIcon,
             onClick: () => router.push("/partners"),
             selected: pathname === "/partners",
           },
           {
             label: "Settings",
-            icon: SettingsMajor,
+            icon: SettingsIcon,
             onClick: () => router.push("/settings"),
             selected: pathname === "/settings",
           },

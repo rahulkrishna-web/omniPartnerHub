@@ -189,7 +189,7 @@ export function ProductList() {
                     ? "The app could not authenticate with Shopify. This usually happens if cookies are blocked or the session expired." 
                     : error}
               </p>
-              {error === "Unauthorized" && shop && (
+              { (error === "Unauthorized" || error === "Session not found") && shop && (
                   <div style={{marginTop: 10}}>
                     <Button onClick={() => {
                         window.open(`/api/auth?shop=${shop}`, '_top');

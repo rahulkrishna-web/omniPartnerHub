@@ -1,4 +1,4 @@
-import { shopify } from "@/lib/shopify";
+import { shopify, sessionStorage } from "@/lib/shopify";
 import { db } from "@/lib/db";
 import { products, productExchange, shops } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
@@ -10,7 +10,7 @@ export async function GET(request: Request) {
   if (!sessionId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  const session = await shopify.config.sessionStorage.loadSession(sessionId);
+  const session = await sessionStorage.loadSession(sessionId);
   if (!session) {
     return NextResponse.json({ error: "Session not found" }, { status: 401 });
   }
@@ -52,7 +52,7 @@ export async function PUT(request: Request) {
   if (!sessionId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  const session = await shopify.config.sessionStorage.loadSession(sessionId);
+  const session = await sessionStorage.loadSession(sessionId);
   if (!session) {
     return NextResponse.json({ error: "Session not found" }, { status: 401 });
   }

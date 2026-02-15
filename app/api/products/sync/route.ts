@@ -1,4 +1,4 @@
-import { shopify } from "@/lib/shopify";
+import { shopify, sessionStorage } from "@/lib/shopify";
 import { db } from "@/lib/db";
 import { shops } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
@@ -13,7 +13,7 @@ export async function POST(request: Request) {
     }
 
     const sessionId = await shopify.session.getCurrentId({ isOnline: true, rawRequest: request });
-    const sessionData = await shopify.config.sessionStorage.loadSession(sessionId!);
+    const sessionData = await sessionStorage.loadSession(sessionId!);
 
     if (!sessionData) {
       return NextResponse.json({ error: "Session not found" }, { status: 401 });

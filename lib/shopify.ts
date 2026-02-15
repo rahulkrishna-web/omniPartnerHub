@@ -1,11 +1,13 @@
 import "@shopify/shopify-api/adapters/node";
 import { shopifyApi, ApiVersion } from "@shopify/shopify-api";
-
+import { DrizzleSessionStorage } from "./session-storage";
 
 // Ensure process.env is loaded or checked
 if (!process.env.SHOPIFY_API_KEY || !process.env.SHOPIFY_API_SECRET) {
   throw new Error("Missing Shopify API Credentials");
 }
+
+export const sessionStorage = new DrizzleSessionStorage();
 
 export const shopify = shopifyApi({
   apiKey: process.env.SHOPIFY_API_KEY,

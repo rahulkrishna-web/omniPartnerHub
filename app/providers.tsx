@@ -17,6 +17,24 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      const host = url.searchParams.get("host");
+      const shop = url.searchParams.get("shop");
+
+      // Auto-fix missing host param: FORCE RELOAD with host
+      if (!host && shop) {
+        const shopName = shop.replace(".myshopify.com", "");
+        const rawHost = `admin.shopify.com/store/${shopName}`;
+        const newHost = btoa(rawHost).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        
+        url.searchParams.set("host", newHost);
+        console.log("Missing host. Forcing reload with:", url.toString());
+        
+        // Use window.location.href to force a full page reload so App Bridge script reads the new URL
+        window.location.href = url.toString();
+        return;
+      }
+
       console.log("Checking for shopify global...", window.shopify);
 
       if (window.shopify) {

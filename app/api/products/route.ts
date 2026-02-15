@@ -8,8 +8,28 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
   // Session validation
-  const sessionId = await shopify.session.getCurrentId({ isOnline: false, rawRequest: request });
+  // Session validation
+  const authHeader = request.headers.get("Authorization");
+  console.log("Debug API: Auth Header Present?", !!authHeader);
+
+  let sessionId;
+  try {
+      sessionId = await shopify.session.getCurrentId({ isOnline: false, rawRequest: request });
+      console.log("Debug API: sessionId from getCurrentId:", sessionId);
+  } catch (e) {
+      console.error("Debug API: getCurrentId failed:", e);
+  }
+
   if (!sessionId) {
+      if (authHeader) {
+          const token = authHeader.replace("Bearer ", "");
+          try {
+            const payload = await shopify.session.decodeSessionToken(token);
+            console.log("Debug API: Decoded Token Payload:", payload);
+          } catch(e) {
+            console.error("Debug API: Failed to decode token:", e);
+          }
+      }
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const session = await sessionStorage.loadSession(sessionId);

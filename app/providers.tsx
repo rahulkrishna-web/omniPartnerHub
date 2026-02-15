@@ -15,13 +15,19 @@ declare global {
 export function Providers({ children }: { children: React.ReactNode }) {
   const [appBridgeReady, setAppBridgeReady] = useState(false);
 
+  // ...
+  const [initError, setInitError] = useState(false);
+  const [shop, setShop] = useState("");
+  const apiKey = process.env.NEXT_PUBLIC_SHOPIFY_API_KEY;
+
   useEffect(() => {
     if (typeof window !== "undefined") {
       const url = new URL(window.location.href);
       const host = url.searchParams.get("host");
-      const shop = url.searchParams.get("shop");
+      const shopParam = url.searchParams.get("shop");
+      if (shopParam) setShop(shopParam);
 
-      console.log("Debug Params:", { host, shop, href: window.location.href });
+      console.log("Debug Params:", { host, shop: shopParam, href: window.location.href, apiKeyPresent: !!apiKey });
 
       console.log("Checking for shopify global...", window.shopify);
 
@@ -36,7 +42,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
           }
         }, 100);
         
-  // ... inside effect ...
         // Timeout after 2 seconds
         const timeout = setTimeout(() => {
            clearInterval(interval);
@@ -54,9 +59,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const [initError, setInitError] = useState(false);
-  const [shop, setShop] = useState("");
-
   // Helper to handle installation/repair
   const handleInstall = () => {
         if (!shop) return;
@@ -66,17 +68,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
         }
         // Redirect to auth
         if (typeof window !== "undefined") {
-            // If embedded, we need to break out. If standalone, just assign.
-            // But for safety, _top always works to break out or stay top.
             window.open(`/api/auth?shop=${domain}`, '_top');
         }
   };
 
   if (initError || (!appBridgeReady && typeof window !== 'undefined' && window.top === window.self)) {
-      // Show Install/Repair Screen if:
-      // 1. App Bridge Timed Out (InitError) inside Shopify
-      // 2. Opened directly (window.top === window.self)
-      
       const isEmbedded = typeof window !== 'undefined' && window.top !== window.self;
 
       return (
@@ -134,11 +130,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
                     >
                         {isEmbedded ? "Repair Connection" : "Install App"}
                     </button>
-                    {!isEmbedded && (
-                        <p style={{marginTop: 16, fontSize: 12, color: '#6D7175', textAlign: 'center'}}>
-                            Running outside of Shopify Admin
-                        </p>
-                    )}
+                    
+                    <div style={{marginTop: 20, paddingTop: 10, borderTop: '1px solid #eee', fontSize: 11, color: '#999'}}>
+                        <p>Debug Info:</p>
+                        <p>API Key: {apiKey ? (apiKey.substring(0, 4) + '...') : 'MISSING'}</p>
+                        <p>Location: {isEmbedded ? 'Embedded' : 'Standalone'}</p>
+                    </div>
                 </div>
             </div>
         </AppProvider>

@@ -1,13 +1,12 @@
 "use client";
 
 import { AppNavigation } from "../components/app-navigation";
-import { Page, Layout, Card, Text, EmptyState, Button } from "@shopify/polaris";
+import { Page, Layout, Card, EmptyState, Frame } from "@shopify/polaris";
 
 export default function PartnersPage() {
   return (
-    <Page>
-      <AppNavigation />
-      <div style={{ marginTop: "1rem" }}>
+    <Frame navigation={<AppNavigation />}>
+      <Page>
         <Layout>
           <Layout.Section>
             <Card>
@@ -21,7 +20,7 @@ export default function PartnersPage() {
             </Card>
           </Layout.Section>
         </Layout>
-      </div>
-    </Page>
+      </Page>
+    </Frame>
   );
 }

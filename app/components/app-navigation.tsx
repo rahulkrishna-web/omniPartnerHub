@@ -1,57 +1,49 @@
 "use client";
 
-import { usePathname } from "next/navigation";
-import { useEffect } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { Navigation } from "@shopify/polaris";
+import { HomeMajor, ProductsMajor, CollectionsMajor, CustomersMajor, SettingsMajor } from "@shopify/polaris-icons";
 
 export function AppNavigation() {
   const pathname = usePathname();
+  const router = useRouter();
 
-  useEffect(() => {
-    // Configure App Nav via window.shopify
-    if (typeof window !== "undefined" && window.shopify) {
-      const config = {
-        children: [
+  return (
+    <Navigation location={pathname}>
+      <Navigation.Section
+        items={[
           {
-            role: "menu",
-            children: [
-              {
-                label: "Dashboard",
-                href: "/",
-                selected: pathname === "/",
-              },
-              {
-                label: "My Products",
-                href: "/products",
-                selected: pathname === "/products",
-              },
-              {
-                label: "Product Hub",
-                href: "/hub",
-                selected: pathname === "/hub",
-              },
-              {
-                label: "Partners",
-                href: "/partners",
-                selected: pathname === "/partners",
-              },
-              {
-                label: "Settings",
-                href: "/settings",
-                selected: pathname === "/settings",
-              },
-            ],
+            label: "Dashboard",
+            icon: HomeMajor,
+            onClick: () => router.push("/"),
+            selected: pathname === "/",
           },
-        ],
-      };
-
-      // Set app nav configuration
-      if (window.shopify.config) {
-        window.shopify.config({
-          children: config.children,
-        });
-      }
-    }
-  }, [pathname]);
-
-  return null; // App Nav is rendered by Shopify
+          {
+            label: "My Products",
+            icon: ProductsMajor,
+            onClick: () => router.push("/products"),
+            selected: pathname === "/products",
+          },
+          {
+            label: "Product Hub",
+            icon: CollectionsMajor,
+            onClick: () => router.push("/hub"),
+            selected: pathname === "/hub",
+          },
+          {
+            label: "Partners",
+            icon: CustomersMajor,
+            onClick: () => router.push("/partners"),
+            selected: pathname === "/partners",
+          },
+          {
+            label: "Settings",
+            icon: SettingsMajor,
+            onClick: () => router.push("/settings"),
+            selected: pathname === "/settings",
+          },
+        ]}
+      />
+    </Navigation>
+  );
 }

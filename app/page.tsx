@@ -1,13 +1,12 @@
 "use client";
 
 import { AppNavigation } from "./components/app-navigation";
-import { Page, Layout, Card, Text, InlineStack, BlockStack } from "@shopify/polaris";
+import { Page, Layout, Card, Text, InlineStack, BlockStack, Frame } from "@shopify/polaris";
 
 export default function DashboardPage() {
   return (
-    <Page>
-      <AppNavigation />
-      <div style={{ marginTop: "1rem" }}>
+    <Frame navigation={<AppNavigation />}>
+      <Page>
         <Layout>
           <Layout.Section>
             <BlockStack gap="400">
@@ -47,7 +46,7 @@ export default function DashboardPage() {
             </BlockStack>
           </Layout.Section>
         </Layout>
-      </div>
-    </Page>
+      </Page>
+    </Frame>
   );
 }

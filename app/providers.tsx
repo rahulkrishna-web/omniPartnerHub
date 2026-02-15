@@ -17,8 +17,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-  useEffect(() => {
-    if (typeof window !== "undefined") {
       console.log("Checking for shopify global...", window.shopify);
 
       if (window.shopify) {
@@ -47,8 +45,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
             clearTimeout(timeout);
         };
       }
-    }
-  }, []);
     }
   }, []);
 

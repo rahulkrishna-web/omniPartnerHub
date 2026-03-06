@@ -23,6 +23,7 @@ import {
 import { AppNavigation } from "../../components/app-navigation";
 
 import { getSessionToken } from "../../lib/session";
+import { getCurrencySymbol } from "../../lib/currency";
 
 export default function ProductDetailPage() {
   const params = useParams();
@@ -44,8 +45,8 @@ export default function ProductDetailPage() {
   const [commissionFlat, setCommissionFlat] = useState("");
   const [isPublic, setIsPublic] = useState(false);
 
-  // Helper to get currency symbol (simple version)
-  const currencySymbol = shop?.currency || "$";
+  // Helper to get currency symbol (₹, $, etc.) from ISO code
+  const currencySymbol = shop?.currency ? getCurrencySymbol(shop.currency) : "$";
 
   const fetchProduct = useCallback(async () => {
     setLoading(true);

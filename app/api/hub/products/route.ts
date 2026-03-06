@@ -1,21 +1,27 @@
 import { NextResponse } from "next/server";
-import { shopify } from "@/lib/shopify";
+import { shopify, sessionStorage } from "@/lib/shopify";
 import { db } from "@/lib/db";
 import { products, productExchange, shops } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 export async function GET(request: Request) {
   try {
-    const session = await shopify.session.getCurrentId({
-      isOnline: true,
+    // Use offline session (standard for server-side API calls in embedded apps)
+    const sessionId = await shopify.session.getCurrentId({
+      isOnline: false,
       rawRequest: request,
     });
 
-    if (!session) {
+    if (!sessionId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Fetch all products that are marked as public
+    const session = await sessionStorage.loadSession(sessionId);
+    if (!session) {
+      return NextResponse.json({ error: "Session not found" }, { status: 401 });
+    }
+
+    // Fetch all public products along with their supplier shop's currency info
     const publicProducts = await db
       .select({
         id: products.id,
@@ -28,6 +34,8 @@ export async function GET(request: Request) {
         commissionPercent: productExchange.commissionPercent,
         commissionFlat: productExchange.commissionFlat,
         supplierShop: shops.shop,
+        supplierCurrency: shops.currency,
+        supplierMoneyFormat: shops.moneyFormat,
       })
       .from(products)
       .innerJoin(productExchange, eq(products.id, productExchange.productId))
@@ -36,7 +44,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ products: publicProducts });
   } catch (error) {
-    console.error("Error fetching hub products:", error);
+    console.error("[HubProducts] Error fetching products:", error);
     return NextResponse.json({ error: "Failed to fetch products" }, { status: 500 });
   }
 }

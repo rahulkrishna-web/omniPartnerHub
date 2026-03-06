@@ -14,31 +14,18 @@ export async function GET(request: Request) {
 
     const { session } = callbackResponse;
 
-    // Verify session storage
+    // Store session
     if (shopify.config.sessionStorage) {
-        console.log("Debug Callback: Explicitly storing session...", session.id);
-        const stored = await shopify.config.sessionStorage.storeSession(session);
-        if (!stored) {
-             console.error("Debug Callback: Failed to store session explicitely.");
-        } else {
-             console.log("Debug Callback: Session stored successfully.");
-        }
-    } else {
-        console.error("Debug Callback: No sessionStorage configured on shopify client!");
+      await shopify.config.sessionStorage.storeSession(session);
     }
-    
+
     // Register Webhooks
-    const webhookResponse = await shopify.webhooks.register({
-      session,
-    });
-
+    const webhookResponse = await shopify.webhooks.register({ session });
     if (!webhookResponse["PRODUCTS_UPDATE"]?.[0]?.success) {
-      console.error("Failed to register PRODUCTS_UPDATE webhook", webhookResponse);
-    } else {
-        console.log("Registered PRODUCTS_UPDATE webhook");
+      console.error("[Auth] Failed to register PRODUCTS_UPDATE webhook", webhookResponse);
     }
 
-     // Update shop record (Session storage handles the token, but we track installation status here)
+    // Upsert shop record
     await db
       .insert(shops)
       .values({
@@ -57,15 +44,33 @@ export async function GET(request: Request) {
         },
       });
 
-    // Redirect to Shopify Admin
-    // Construct the embedded app URL
+    // Fetch shop currency immediately at install time so we never default to USD
+    try {
+      const client = new shopify.clients.Rest({ session });
+      const shopResponse = await client.get({ path: "shop" });
+      const shopInfo = (shopResponse.body as any).shop;
+      if (shopInfo) {
+        await db
+          .update(shops)
+          .set({
+            currency: shopInfo.currency,
+            moneyFormat: shopInfo.money_format,
+          })
+          .where(eq(shops.shop, session.shop));
+      }
+    } catch (e) {
+      console.error("[Auth] Failed to fetch shop currency at install:", e);
+    }
+
+    // Redirect to embedded app
     const apiKey = process.env.SHOPIFY_API_KEY;
     const shopName = session.shop.replace(".myshopify.com", "");
     const adminUrl = `https://admin.shopify.com/store/${shopName}/apps/${apiKey}`;
 
     return NextResponse.redirect(adminUrl);
   } catch (error) {
-    console.error("Auth callback error:", error);
+    console.error("[Auth] Callback error:", error);
     return NextResponse.json({ error: "Auth failed" }, { status: 500 });
   }
 }
+

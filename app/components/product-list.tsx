@@ -21,6 +21,7 @@ import {
   Link,
 } from "@shopify/polaris";
 import { getSessionToken } from "../lib/session";
+import { getCurrencySymbol } from "../lib/currency";
 
 export function ProductList() {
   const [products, setProducts] = useState<any[]>([]);
@@ -29,7 +30,7 @@ export function ProductList() {
   const [updatingIds, setUpdatingIds] = useState<number[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [shop, setShop] = useState<any>(null);
-  const currencySymbol = shop?.currency || "$";
+  const currencySymbol = shop?.currency ? getCurrencySymbol(shop.currency) : "$";
 
   // Debounce timers map keyed by productId+field
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});

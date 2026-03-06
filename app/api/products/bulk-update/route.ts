@@ -21,23 +21,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid productIds" }, { status: 400 });
     }
 
-    // Perform bulk updates
-    // For Drizzle, we might need to handle upserts in a loop or use a more complex query if the records don't exist.
-    // However, for simplicity and since productExchange records are created when products are sync'd or first edited:
-    
+    // Perform atomic bulk updates
     for (const productId of productIds) {
-      const existing = await db.query.productExchange.findFirst({
-        where: eq(productExchange.productId, productId)
-      });
-
-      if (existing) {
-        await db.update(productExchange)
-          .set({ isPublic })
-          .where(eq(productExchange.productId, productId));
-      } else {
-        await db.insert(productExchange)
-          .values({ productId, isPublic });
-      }
+      await db.insert(productExchange)
+        .values({ productId, isPublic })
+        .onConflictDoUpdate({
+          target: productExchange.productId,
+          set: { isPublic }
+        });
     }
 
     console.log(`Debug API: Bulk updated ${productIds.length} products to isPublic: ${isPublic}`);

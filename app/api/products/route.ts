@@ -90,26 +90,22 @@ export async function PUT(request: Request) {
   // Verify ownership? (check if product belongs to shop)
   // For now skipping deep verification for speed, but ideally yes.
 
-  // Upsert into productExchange
-  // Check if exists
-  const existing = await db.query.productExchange.findFirst({
-    where: eq(productExchange.productId, productId)
-  });
-
-  if (existing) {
-    await db.update(productExchange).set({
-      wholesalePrice,
-      retailPrice,
-      isPublic
-    }).where(eq(productExchange.id, existing.id));
-  } else {
-    await db.insert(productExchange).values({
+  // Atomic Upsert into productExchange
+  await db.insert(productExchange)
+    .values({
       productId,
       wholesalePrice,
       retailPrice,
       isPublic
+    })
+    .onConflictDoUpdate({
+      target: productExchange.productId,
+      set: {
+        wholesalePrice,
+        retailPrice,
+        isPublic
+      }
     });
-  }
 
   console.log(`Debug API: Updated product ${productId} isPublic to ${isPublic}`);
   return NextResponse.json({ success: true });

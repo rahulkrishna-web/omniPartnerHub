@@ -1,15 +1,7 @@
 /**
  * Shared session resolution utility for Shopify embedded apps in Vercel serverless.
  *
- * Key insight: `getCurrentId` needs a session cookie which doesn't exist in
- * serverless API calls. Instead we decode the Bearer JWT (without signature
- * verification — just to read the `dest` shop domain claim), then directly
- * load `offline_{shop}` from the session storage.
- *
- * Priority:
- *   1. Bearer JWT → offline_{shop} direct load (fastest, most reliable)
- *   2. Bearer JWT → findSessionsByShop fallback (any session for this shop)
- *   3. getCurrentId offline/online (works in environments with cookies)
+ * DIAGNOSTIC MODE: All steps log to console so you can trace failures in Vercel logs.
  */
 
 import { shopify, sessionStorage } from "@/lib/shopify";
@@ -26,11 +18,6 @@ export type ResolvedSession = {
   scope: string;
 };
 
-/**
- * Extracts the shop domain from a Shopify App Bridge JWT without verifying
- * the signature. We only need the `dest` claim to look up the session in DB —
- * the DB lookup itself is the security gate, not the JWT signature.
- */
 function extractShopFromJwt(token: string): string | null {
   try {
     const parts = token.split(".");
@@ -40,11 +27,14 @@ function extractShopFromJwt(token: string): string | null {
       );
       const dest = payload?.dest as string | undefined;
       if (dest) {
-        return dest.replace("https://", "").replace(/\/$/, "");
+        const shop = dest.replace("https://", "").replace(/\/$/, "");
+        console.log(`[resolveSession] JWT decoded → shop="${shop}"`);
+        return shop;
       }
+      console.warn("[resolveSession] JWT decoded but no 'dest' claim found", JSON.stringify(payload).slice(0, 200));
     }
-  } catch {
-    /* invalid token format — ignore */
+  } catch (e: any) {
+    console.error("[resolveSession] JWT decode failed:", e?.message);
   }
   return null;
 }
@@ -52,54 +42,76 @@ function extractShopFromJwt(token: string): string | null {
 export async function resolveSession(request: Request): Promise<ResolvedSession | null> {
   const authHeader = request.headers.get("Authorization");
   const token = authHeader?.replace("Bearer ", "");
+  const path = new URL(request.url).pathname;
 
-  // 1. Bearer JWT → directly load offline session
+  console.log(`[resolveSession] ${path} — hasToken=${!!token} tokenLength=${token?.length ?? 0}`);
+
+  // ── Step 1: Bearer JWT → offline session load ─────────────────────────────
   if (token) {
     const shopDomain = extractShopFromJwt(token);
     if (shopDomain) {
-      // Offline session ID is always `offline_{shop}`
       const offlineId = `offline_${shopDomain}`;
+      console.log(`[resolveSession] Trying offline session id="${offlineId}"`);
+
       try {
         const session = await sessionStorage.loadSession(offlineId);
         if (session?.shop && session?.accessToken) {
+          console.log(`[resolveSession] ✅ Step1: loaded offline session for shop="${session.shop}"`);
           return session as unknown as ResolvedSession;
         }
-      } catch { /* ignore */ }
+        console.warn(`[resolveSession] ⚠️  Step1: offline session found but has no accessToken. shop="${session?.shop}" accessToken=${!!session?.accessToken}`);
+      } catch (e: any) {
+        console.error("[resolveSession] ❌ Step1: loadSession threw:", e?.message);
+      }
 
-      // Fallback: any session for this shop
+      // ── Step 2: findSessionsByShop ───────────────────────────────────────
+      console.log(`[resolveSession] Trying findSessionsByShop("${shopDomain}")`);
       try {
         const allSessions = await sessionStorage.findSessionsByShop(shopDomain);
+        console.log(`[resolveSession] findSessionsByShop returned ${allSessions.length} sessions:`,
+          allSessions.map((s) => `id=${s.id} isOnline=${s.isOnline} hasToken=${!!s.accessToken}`)
+        );
         const best =
           allSessions.find((s) => !s.isOnline && s.accessToken) ||
           allSessions.find((s) => !!s.accessToken);
-        if (best) return best as unknown as ResolvedSession;
-      } catch { /* ignore */ }
+        if (best) {
+          console.log(`[resolveSession] ✅ Step2: using session id="${best.id}"`);
+          return best as unknown as ResolvedSession;
+        }
+        console.warn("[resolveSession] ⚠️  Step2: no sessions with accessToken found");
+      } catch (e: any) {
+        console.error("[resolveSession] ❌ Step2: findSessionsByShop threw:", e?.message);
+      }
+    } else {
+      console.warn("[resolveSession] ⚠️  Could not extract shopDomain from JWT — token might not be a Shopify session token");
+    }
+  } else {
+    console.warn("[resolveSession] ⚠️  No Authorization header present");
+  }
+
+  // ── Step 3: getCurrentId fallbacks (cookie-based) ─────────────────────────
+  for (const isOnline of [false, true]) {
+    try {
+      const id = await shopify.session.getCurrentId({ isOnline, rawRequest: request });
+      console.log(`[resolveSession] getCurrentId(isOnline=${isOnline}) → id="${id}"`);
+      if (id) {
+        const s = await sessionStorage.loadSession(id);
+        if (s?.shop && s?.accessToken) {
+          console.log(`[resolveSession] ✅ Step3: loaded session from getCurrentId(isOnline=${isOnline})`);
+          return s as unknown as ResolvedSession;
+        }
+      }
+    } catch (e: any) {
+      console.error(`[resolveSession] ❌ Step3 getCurrentId(isOnline=${isOnline}) threw:`, e?.message);
     }
   }
 
-  // 2. getCurrentId (cookie-based, works in non-serverless environments)
-  try {
-    const id = await shopify.session.getCurrentId({ isOnline: false, rawRequest: request });
-    if (id) {
-      const s = await sessionStorage.loadSession(id);
-      if (s?.shop && s?.accessToken) return s as unknown as ResolvedSession;
-    }
-  } catch { /* ignore */ }
-
-  try {
-    const id = await shopify.session.getCurrentId({ isOnline: true, rawRequest: request });
-    if (id) {
-      const s = await sessionStorage.loadSession(id);
-      if (s?.shop && s?.accessToken) return s as unknown as ResolvedSession;
-    }
-  } catch { /* ignore */ }
-
+  console.error("[resolveSession] ❌ All session resolution steps failed — returning null");
   return null;
 }
 
 /**
- * Ensures a shop record exists in the `shops` table.
- * Self-heals if the auth callback failed to create it.
+ * Self-healing shop upsert.
  */
 export async function ensureShopRecord(session: ResolvedSession) {
   const existing = await db.query.shops.findFirst({

@@ -9,6 +9,8 @@ import {
   useIndexResourceState,
   Text,
   Thumbnail,
+  FormLayout,
+  TextField,
   Badge,
   Button,
   BlockStack,
@@ -190,6 +192,39 @@ export function ProductList() {
     },
   ];
 
+  async function updatePrice(productId: number, field: 'retailPrice' | 'wholesalePrice', value: string) {
+    const previousProducts = [...products];
+    const updatedProducts = products.map((p) => {
+      if (p.id === productId) {
+        return { ...p, exchange: { ...p.exchange, [field]: value } };
+      }
+      return p;
+    });
+    setProducts(updatedProducts);
+
+    try {
+      const token = await getSessionToken();
+      const product = updatedProducts.find(p => p.id === productId);
+      const res = await fetch("/api/products", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ 
+            productId, 
+            retailPrice: product?.exchange.retailPrice,
+            wholesalePrice: product?.exchange.wholesalePrice,
+            isPublic: product?.exchange.isPublic 
+        }),
+      });
+      if (!res.ok) throw new Error("Price update failed");
+    } catch (err: any) {
+      setError(err.message);
+      setProducts(previousProducts);
+    }
+  }
+
   const rowMarkup = products.map(
     ({ id, title, image, vendor, exchange }, index) => {
       const isUpdating = updatingIds.includes(id);
@@ -209,6 +244,26 @@ export function ProductList() {
             </Text>
           </IndexTable.Cell>
           <IndexTable.Cell>{vendor}</IndexTable.Cell>
+          <IndexTable.Cell>
+            <TextField
+              label="Wholesale"
+              labelHidden
+              value={exchange?.wholesalePrice || "0.00"}
+              onChange={(val: string) => updatePrice(id, 'wholesalePrice', val)}
+              prefix="$"
+              autoComplete="off"
+            />
+          </IndexTable.Cell>
+          <IndexTable.Cell>
+            <TextField
+              label="Retail"
+              labelHidden
+              value={exchange?.retailPrice || "0.00"}
+              onChange={(val: string) => updatePrice(id, 'retailPrice', val)}
+              prefix="$"
+              autoComplete="off"
+            />
+          </IndexTable.Cell>
           <IndexTable.Cell>
             <Badge tone={exchange?.isPublic ? "success" : "attention"}>
               {exchange?.isPublic ? "Public" : "Private"}
@@ -276,6 +331,8 @@ export function ProductList() {
                   { title: "" },
                   { title: "Product" },
                   { title: "Vendor" },
+                  { title: "Wholesale" },
+                  { title: "Retail Price" },
                   { title: "Status" },
                   { title: "Actions" },
                 ]}

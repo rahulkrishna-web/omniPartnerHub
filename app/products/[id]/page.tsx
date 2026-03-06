@@ -37,6 +37,7 @@ export default function ProductDetailPage() {
   const id = params.id;
 
   const [product, setProduct] = useState<any>(null);
+  const [storeDetails, setStoreDetails] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -63,7 +64,9 @@ export default function ProductDetailPage() {
       
       const p = data.product;
       setProduct(p);
-      setRetailPrice(p.exchange?.retailPrice || "0.00");
+      setStoreDetails(data.storeDetails);
+      
+      setRetailPrice(p.exchange?.retailPrice || ""); // Keep empty if no override
       setWholesalePrice(p.exchange?.wholesalePrice || "0.00");
       setCommissionPercent(p.exchange?.commissionPercent || "0");
       setCommissionFlat(p.exchange?.commissionFlat || "0.00");
@@ -92,7 +95,7 @@ export default function ProductDetailPage() {
         method: "PUT",
         headers,
         body: JSON.stringify({
-          retailPrice,
+          retailPrice: retailPrice || storeDetails?.price, // Use live MSRP if not overridden
           wholesalePrice,
           commissionPercent,
           commissionFlat,
@@ -102,6 +105,7 @@ export default function ProductDetailPage() {
 
       if (!res.ok) throw new Error("Failed to save changes");
       setSuccess(true);
+      fetchProduct(); // Refresh data
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -154,18 +158,45 @@ export default function ProductDetailPage() {
           )}
 
           <Layout.Section variant="oneThird">
-             <Card>
-                <BlockStack gap="400">
-                    <Thumbnail source={product.image || ""} alt={product.title} size="large" />
-                    <BlockStack gap="200">
-                        <Text variant="headingMd" as="h2">Product Info</Text>
-                        <Text variant="bodyMd" as="p">Shopify ID: {product.shopifyProductId}</Text>
-                        <Badge tone={isPublic ? "success" : "attention"}>
-                            {isPublic ? "Public in Boutique" : "Private"}
-                        </Badge>
+             <BlockStack gap="400">
+                <Card>
+                    <BlockStack gap="400">
+                        <Thumbnail source={product.image || ""} alt={product.title} size="large" />
+                        <BlockStack gap="200">
+                            <Text variant="headingMd" as="h2">Product Info</Text>
+                            <Text variant="bodyMd" as="p">Shopify ID: {product.shopifyProductId}</Text>
+                            <Badge tone={isPublic ? "success" : "attention"}>
+                                {isPublic ? "Public in Boutique" : "Private"}
+                            </Badge>
+                        </BlockStack>
                     </BlockStack>
-                </BlockStack>
-             </Card>
+                </Card>
+
+                {storeDetails && (
+                  <Card>
+                    <BlockStack gap="400">
+                      <Text variant="headingMd" as="h2">Live Store Info</Text>
+                      <BlockStack gap="200">
+                        <InlineStack align="space-between">
+                          <Text variant="bodyMd" as="span">Store MSRP:</Text>
+                          <Text variant="bodyMd" fontWeight="bold" as="span">${storeDetails.price}</Text>
+                        </InlineStack>
+                        <InlineStack align="space-between">
+                          <Text variant="bodyMd" as="span">Compare At:</Text>
+                          <Text variant="bodyMd" as="span">${storeDetails.compareAtPrice || "N/A"}</Text>
+                        </InlineStack>
+                        <Divider />
+                        <InlineStack align="space-between">
+                          <Text variant="bodyMd" as="span">Inventory:</Text>
+                          <Badge tone={storeDetails.inventoryQuantity > 0 ? "success" : "critical"}>
+                            {`${storeDetails.inventoryQuantity} available`}
+                          </Badge>
+                        </InlineStack>
+                      </BlockStack>
+                    </BlockStack>
+                  </Card>
+                )}
+             </BlockStack>
           </Layout.Section>
 
           <Layout.Section>
@@ -175,12 +206,13 @@ export default function ProductDetailPage() {
                 <FormLayout>
                   <FormLayout.Group>
                     <TextField
-                      label="Retail Price"
+                      label="Retail Price (Override)"
                       value={retailPrice}
                       onChange={setRetailPrice}
                       prefix="$"
+                      placeholder={storeDetails?.price || "0.00"}
                       autoComplete="off"
-                      helpText="The price shown to customers in the boutique."
+                      helpText={retailPrice ? "This price overrides the store MSRP in boutiques." : `Currently using store MSRP: $${storeDetails?.price || "0.00"}`}
                     />
                     <TextField
                       label="Wholesale Price"

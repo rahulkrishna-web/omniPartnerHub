@@ -34,7 +34,28 @@ export async function GET(
             return NextResponse.json({ error: "Product not found" }, { status: 404 });
         }
 
-        return NextResponse.json({ product });
+        // Fetch Live Data from Shopify
+        let storeDetails = null;
+        try {
+            const client = new shopify.clients.Rest({ session });
+            const response = await client.get({
+                path: `products/${product.shopifyProductId}`,
+            });
+            const shopifyProduct = (response.body as any).product;
+            if (shopifyProduct && shopifyProduct.variants?.length > 0) {
+                const variant = shopifyProduct.variants[0];
+                storeDetails = {
+                    price: variant.price,
+                    compareAtPrice: variant.compare_at_price,
+                    inventoryQuantity: variant.inventory_quantity
+                };
+            }
+        } catch (shopifyError) {
+            console.error("Failed to fetch shopify live data:", shopifyError);
+            // Non-blocking, return null storeDetails if Shopify fetch fails
+        }
+
+        return NextResponse.json({ product, storeDetails });
     } catch (error: any) {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }

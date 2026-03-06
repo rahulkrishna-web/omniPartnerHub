@@ -137,7 +137,10 @@ export function ProductList() {
           Authorization: `Bearer ${token}`,
         },
       });
-      if (!res.ok) throw new Error("Sync failed");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || `Sync failed (${res.status})`);
+      }
       await fetchProducts();
     } catch (err: any) {
       setError(err.message);

@@ -90,6 +90,11 @@ export default function PartnersPage() {
   const { selectedResources, allResourcesSelected, handleSelectionChange } =
     useIndexResourceState(partners);
 
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    alert("Copied to clipboard!");
+  };
+
   const rowMarkup = partners.map(({ id, name, email, handle, tier }, index) => {
     const boutiqueUrl = `https://${shop}/apps/omnipartner-hub/store/${handle}`;
     return (
@@ -100,27 +105,24 @@ export default function PartnersPage() {
         position={index}
       >
         <IndexTable.Cell>
-          <Text variant="bodyMd" fontWeight="bold" as="span">
-            {name}
-          </Text>
+          <Link
+            url={`/partners/${id}`}
+            data-primary-link
+          >
+            <Text variant="bodyMd" fontWeight="bold" as="span">
+              {name}
+            </Text>
+          </Link>
         </IndexTable.Cell>
         <IndexTable.Cell>{email}</IndexTable.Cell>
         <IndexTable.Cell>
           <Badge tone="info">{`Tier ${tier}`}</Badge>
         </IndexTable.Cell>
         <IndexTable.Cell>
-          <InlineStack gap="200" align="start">
-            <code style={{ background: "#f1f1f1", padding: "2px 4px", fontSize: "12px" }}>
-              {affiliateLink}
-            </code>
-            <Button 
-                size="slim" 
-                onClick={() => {
-                    navigator.clipboard.writeText(affiliateLink);
-                    alert("Link copied!");
-                }}
-            >
-                Copy
+          <InlineStack align="start" gap="200">
+            <code style={{ fontSize: "12px" }}>{boutiqueUrl}</code>
+            <Button size="slim" onClick={() => copyToClipboard(boutiqueUrl)}>
+              Copy
             </Button>
           </InlineStack>
         </IndexTable.Cell>

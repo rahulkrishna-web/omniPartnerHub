@@ -74,8 +74,8 @@ export function ProductList() {
     }
   }, []);
 
-  async function fetchProducts() {
-    setLoading(true);
+  async function fetchProducts(silent = false) {
+    if (!silent) setLoading(true);
     setError(null);
     try {
       const token = await getSessionToken();
@@ -88,13 +88,23 @@ export function ProductList() {
       const data = await res.json();
       setProducts(data.products || []);
     } catch (err: any) {
-      setError(err.message || "Failed to load products");
+      if (!silent) setError(err.message || "Failed to load products");
+    } finally {
+      if (!silent) setLoading(false);
     }
-    setLoading(false);
   }
 
   async function handleBulkUpdate(isPublic: boolean) {
-    setSyncing(true);
+    // Optimistic Update
+    const previousProducts = [...products];
+    const updatedProducts = products.map((p) => {
+      if (selectedResources.includes(p.id)) {
+        return { ...p, exchange: { ...p.exchange, isPublic } };
+      }
+      return p;
+    });
+    setProducts(updatedProducts);
+
     try {
       const token = await getSessionToken();
       const res = await fetch("/api/products/bulk-update", {
@@ -106,15 +116,25 @@ export function ProductList() {
         body: JSON.stringify({ productIds: selectedResources, isPublic }),
       });
       if (!res.ok) throw new Error("Bulk update failed");
-      await fetchProducts();
+      await fetchProducts(true); // Silent refresh to sync with DB
     } catch (err: any) {
       setError(err.message);
+      setProducts(previousProducts); // Rollback
     }
-    setSyncing(false);
   }
 
   async function toggleVisibility(productId: number, currentStatus: boolean) {
+    // Optimistic Update
+    const previousProducts = [...products];
+    const updatedProducts = products.map((p) => {
+      if (p.id === productId) {
+        return { ...p, exchange: { ...p.exchange, isPublic: !currentStatus } };
+      }
+      return p;
+    });
+    setProducts(updatedProducts);
     setUpdatingIds((prev) => [...prev, productId]);
+
     try {
       const token = await getSessionToken();
       const res = await fetch("/api/products", {
@@ -126,9 +146,10 @@ export function ProductList() {
         body: JSON.stringify({ productId, isPublic: !currentStatus }),
       });
       if (!res.ok) throw new Error("Update failed");
-      await fetchProducts();
+      await fetchProducts(true); // Silent refresh
     } catch (err: any) {
       setError(err.message);
+      setProducts(previousProducts); // Rollback
     } finally {
       setUpdatingIds((prev) => prev.filter((id) => id !== productId));
     }

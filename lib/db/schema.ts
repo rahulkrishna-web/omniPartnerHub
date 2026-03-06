@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, boolean, integer } from "drizzle-orm/pg-core";
 
 export const shops = pgTable("shops", {
   id: serial("id").primaryKey(),
@@ -44,7 +44,7 @@ export const products = pgTable("products", {
 
 export const productExchange = pgTable("product_exchange", {
   id: serial("id").primaryKey(),
-  productId: serial("product_id").references(() => products.id),
+  productId: integer("product_id").references(() => products.id),
   wholesalePrice: text("wholesale_price"), // stored as string (decimal)
   retailPrice: text("retail_price"),
   isPublic: boolean("is_public").default(false),

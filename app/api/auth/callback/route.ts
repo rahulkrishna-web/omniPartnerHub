@@ -14,18 +14,14 @@ export async function GET(request: Request) {
 
     const { session } = callbackResponse;
 
-    // Store session
+    // Store session FIRST — this must succeed before anything else
     if (shopify.config.sessionStorage) {
       await shopify.config.sessionStorage.storeSession(session);
     }
 
-    // Register Webhooks
-    const webhookResponse = await shopify.webhooks.register({ session });
-    if (!webhookResponse["PRODUCTS_UPDATE"]?.[0]?.success) {
-      console.error("[Auth] Failed to register PRODUCTS_UPDATE webhook", webhookResponse);
-    }
-
-    // Upsert shop record
+    // ─── SHOP UPSERT — must happen before any other DB operations ───────────
+    // Wrapped independently so webhook registration failures cannot prevent
+    // the shop from being created in our database.
     await db
       .insert(shops)
       .values({
@@ -44,7 +40,7 @@ export async function GET(request: Request) {
         },
       });
 
-    // Fetch shop currency immediately at install time so we never default to USD
+    // ─── CURRENCY FETCH — non-critical, log and continue on failure ──────────
     try {
       const client = new shopify.clients.Rest({ session });
       const shopResponse = await client.get({ path: "shop" });
@@ -62,6 +58,15 @@ export async function GET(request: Request) {
       console.error("[Auth] Failed to fetch shop currency at install:", e);
     }
 
+    // ─── WEBHOOK REGISTRATION — non-critical, log and continue on failure ────
+    // We define webhooks via shopify.app.toml, but programmatic registration
+    // is kept as a fallback. It must NOT block the install on failure.
+    try {
+      await shopify.webhooks.register({ session });
+    } catch (e) {
+      console.error("[Auth] Webhook registration failed (non-fatal):", e);
+    }
+
     // Redirect to embedded app
     const apiKey = process.env.SHOPIFY_API_KEY;
     const shopName = session.shop.replace(".myshopify.com", "");
@@ -73,4 +78,3 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Auth failed" }, { status: 500 });
   }
 }
-

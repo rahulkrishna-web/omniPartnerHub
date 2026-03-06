@@ -1,51 +1,20 @@
-import { shopify, sessionStorage } from "@/lib/shopify";
 import { db } from "@/lib/db";
 import { products, productExchange, shops } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { resolveSession, ensureShopRecord } from "@/app/lib/shopify-session";
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
-  const authHeader = request.headers.get("Authorization");
-
-  let sessionId: string | undefined;
-  let shopDomain: string | undefined;
-
-  // Primary: try offline session from cookie/header
-  try {
-    sessionId = await shopify.session.getCurrentId({ isOnline: false, rawRequest: request });
-  } catch (e) {
-    // Ignore — will fall through to Bearer token path
-  }
-
-  if (sessionId) {
-    const session = await sessionStorage.loadSession(sessionId);
-    shopDomain = session?.shop;
-  }
-
-  // Fallback: decode Bearer JWT to get the shop domain
-  if (!shopDomain && authHeader) {
-    const token = authHeader.replace("Bearer ", "");
-    try {
-      const payload = await shopify.session.decodeSessionToken(token);
-      shopDomain = (payload as any)?.dest?.replace("https://", "");
-    } catch (e) {
-      console.error("[Products] Failed to decode Bearer token:", e);
-    }
-  }
-
-  if (!shopDomain) {
+  const session = await resolveSession(request);
+  if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Get Shop record
-  const shopRecord = await db.query.shops.findFirst({
-    where: eq(shops.shop, shopDomain),
-  });
-
+  const shopRecord = await ensureShopRecord(session);
   if (!shopRecord) {
-    return NextResponse.json({ error: "Shop not found in DB" }, { status: 404 });
+    return NextResponse.json({ error: "Failed to initialise shop record" }, { status: 500 });
   }
 
   // Flat select — avoids Drizzle leftJoin nested object serialization issues
@@ -90,41 +59,14 @@ export async function GET(request: Request) {
 }
 
 export async function PUT(request: Request) {
-  const authHeader = request.headers.get("Authorization");
-
-  let sessionId: string | undefined;
-  let shopDomain: string | undefined;
-
-  try {
-    sessionId = await shopify.session.getCurrentId({ isOnline: false, rawRequest: request });
-  } catch (e) {
-    // ignore
-  }
-
-  if (sessionId) {
-    const session = await sessionStorage.loadSession(sessionId);
-    shopDomain = session?.shop;
-  }
-
-  if (!shopDomain && authHeader) {
-    const token = authHeader.replace("Bearer ", "");
-    try {
-      const payload = await shopify.session.decodeSessionToken(token);
-      shopDomain = (payload as any)?.dest?.replace("https://", "");
-    } catch (e) {
-      console.error("[Products PUT] Failed to decode Bearer token:", e);
-    }
-  }
-
-  if (!shopDomain) {
+  const session = await resolveSession(request);
+  if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const shopRecord = await db.query.shops.findFirst({
-    where: eq(shops.shop, shopDomain),
-  });
+  const shopRecord = await ensureShopRecord(session);
   if (!shopRecord) {
-    return NextResponse.json({ error: "Shop not found" }, { status: 404 });
+    return NextResponse.json({ error: "Failed to initialise shop record" }, { status: 500 });
   }
 
   const payload = await request.json();
@@ -144,6 +86,11 @@ export async function PUT(request: Request) {
 
   if (!productRecord) {
     return NextResponse.json({ error: "Product not found or access denied" }, { status: 403 });
+  }
+
+  // Block publishing hub-sourced products to the hub (server-side guard)
+  if (isPublic === true && productRecord.isHubSourced) {
+    return NextResponse.json({ error: "Dropshipped products cannot be published to the hub" }, { status: 403 });
   }
 
   // Atomic upsert into productExchange

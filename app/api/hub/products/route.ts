@@ -1,27 +1,21 @@
 import { NextResponse } from "next/server";
-import { shopify, sessionStorage } from "@/lib/shopify";
+import { shopify } from "@/lib/shopify";
 import { db } from "@/lib/db";
 import { products, productExchange, shops } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { resolveSession, ensureShopRecord } from "@/app/lib/shopify-session";
 
 export async function GET(request: Request) {
   try {
-    // Use offline session (standard for server-side API calls in embedded apps)
-    const sessionId = await shopify.session.getCurrentId({
-      isOnline: false,
-      rawRequest: request,
-    });
-
-    if (!sessionId) {
+    const session = await resolveSession(request);
+    if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const session = await sessionStorage.loadSession(sessionId);
-    if (!session) {
-      return NextResponse.json({ error: "Session not found" }, { status: 401 });
-    }
+    // Ensure the retailer's shop record exists (self-healing for new installs)
+    const retailerShop = await ensureShopRecord(session);
 
-    // Fetch all public products along with their supplier shop's currency info
+    // Fetch all public products with their supplier shop's currency info
     const publicProducts = await db
       .select({
         id: products.id,
@@ -42,13 +36,6 @@ export async function GET(request: Request) {
       .innerJoin(productExchange, eq(products.id, productExchange.productId))
       .innerJoin(shops, eq(products.shopId, shops.id))
       .where(eq(productExchange.isPublic, true));
-
-    // Use the already-loaded session to identify the current shop
-    const currentShop = session.shop;
-
-    const retailerShop = await db.query.shops.findFirst({
-      where: eq(shops.shop, currentShop),
-    });
 
     return NextResponse.json({
       products: publicProducts,

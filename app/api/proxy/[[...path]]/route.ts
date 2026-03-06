@@ -6,21 +6,38 @@ import crypto from "crypto";
 export const dynamic = "force-dynamic";
 
 function verifyHmac(url: URL) {
-  const hmac = url.searchParams.get("hmac");
-  if (!hmac) return false;
+  const signature = url.searchParams.get("hmac") || url.searchParams.get("signature");
+  if (!signature) {
+    console.error("[Proxy Diagnostic] No hmac or signature found in query params");
+    return false;
+  }
 
+  if (!process.env.SHOPIFY_API_SECRET) {
+    console.error("[Proxy Diagnostic] CRITICAL: SHOPIFY_API_SECRET is not set in environment");
+    return false;
+  }
+
+  // Shopify App Proxy signature calculation:
+  // 1. Sort lexicographically
+  // 2. Remove 'hmac' or 'signature'
+  // 3. Concatenate key=value WITHOUT delimiter
   const params = Array.from(url.searchParams.entries())
-    .filter(([key]) => key !== "hmac")
+    .filter(([key]) => key !== "hmac" && key !== "signature")
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([key, value]) => `${key}=${value}`)
     .join("");
 
   const calculatedHmac = crypto
-    .createHmac("sha256", process.env.SHOPIFY_API_SECRET!)
+    .createHmac("sha256", process.env.SHOPIFY_API_SECRET)
     .update(params)
     .digest("hex");
 
-  return calculatedHmac === hmac;
+  const isValid = calculatedHmac === signature;
+  if (!isValid) {
+    console.log(`[Proxy Diagnostic] HMAC Mismatch. Calculated: ${calculatedHmac}, Received: ${signature}`);
+    console.log(`[Proxy Diagnostic] String signed: ${params}`);
+  }
+  return isValid;
 }
 
 export async function GET(

@@ -82,9 +82,7 @@ export async function POST(request: Request) {
     // Strip IDs from supplier product to create a new one
     const newProductPayload = {
       title: fullSupplierProduct.title,
-      body_html: fullSupplierProduct.body_html 
-        ? fullSupplierProduct.body_html + `<br><p><em>Sourced via OmniPartner Hub from ${supplierShop.shop.replace(".myshopify.com", "")}</em></p>`
-        : `<p>Sourced via OmniPartner Hub from ${supplierShop.shop.replace(".myshopify.com", "")}</p>`,
+      body_html: fullSupplierProduct.body_html, // Keep original description
       vendor: fullSupplierProduct.vendor || supplierShop.shop.replace(".myshopify.com", ""),
       product_type: fullSupplierProduct.product_type,
       tags: (fullSupplierProduct.tags ? fullSupplierProduct.tags + ", " : "") + "omnipartner-hub,dropship",
@@ -104,7 +102,8 @@ export async function POST(request: Request) {
         compare_at_price: v.compare_at_price,
         weight: v.weight,
         weight_unit: v.weight_unit,
-        inventory_management: null, // Retailer doesn't manage inventory
+        inventory_management: v.inventory_management || "shopify", // Track inventory like supplier
+        inventory_policy: v.inventory_policy || "deny",
         fulfillment_service: "manual",
         requires_shipping: v.requires_shipping,
       })),
@@ -123,8 +122,10 @@ export async function POST(request: Request) {
     const shopifyProduct = (createResponse.body as any).product;
     const shopifyVariantFirst = shopifyProduct?.variants?.[0];
 
-    // 4. Map Variant IDs between Supplier and Retailer
+    // 4. Map Variant IDs and Inventory Item IDs between Supplier and Retailer
     const variantMapping: Record<string, string> = {};
+    const inventoryItemMapping: Record<string, string> = {};
+
     if (shopifyProduct.variants && fullSupplierProduct.variants) {
       for (let i = 0; i < shopifyProduct.variants.length; i++) {
         // Since we created them in the exact same order, index mapping works perfectly
@@ -132,6 +133,12 @@ export async function POST(request: Request) {
         const supplierVariantId = String(fullSupplierProduct.variants[i].id);
         if (retailerVariantId && supplierVariantId) {
           variantMapping[retailerVariantId] = supplierVariantId;
+        }
+
+        const retailerInventoryId = String(shopifyProduct.variants[i].inventory_item_id);
+        const supplierInventoryId = String(fullSupplierProduct.variants[i].inventory_item_id);
+        if (retailerInventoryId && supplierInventoryId && retailerInventoryId !== "undefined" && supplierInventoryId !== "undefined") {
+          inventoryItemMapping[retailerInventoryId] = supplierInventoryId;
         }
       }
     }
@@ -145,6 +152,7 @@ export async function POST(request: Request) {
         retailerShopifyProductId: String(shopifyProduct.id),
         retailerShopifyVariantId: String(shopifyVariantFirst?.id),
         variantMapping,
+        inventoryItemMapping,
         isActive: true,
       })
       .onConflictDoUpdate({
@@ -153,6 +161,7 @@ export async function POST(request: Request) {
           retailerShopifyProductId: String(shopifyProduct.id),
           retailerShopifyVariantId: String(shopifyVariantFirst?.id),
           variantMapping,
+          inventoryItemMapping,
           isActive: true,
         },
       })

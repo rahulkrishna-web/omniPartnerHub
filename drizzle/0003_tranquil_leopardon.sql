@@ -1,0 +1,1 @@
+ALTER TABLE "hub_connections" ADD COLUMN "inventory_item_mapping" jsonb;

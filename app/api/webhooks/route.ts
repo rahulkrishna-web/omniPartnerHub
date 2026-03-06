@@ -4,6 +4,7 @@ import { shops, hubConnections, hubOrders, sessions } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { handleProductUpdate, handleProductDelete } from "@/lib/webhooks/product-handlers";
+import { inngest } from "@/lib/inngest/client";
 
 export async function POST(request: Request) {
   const topic = request.headers.get("X-Shopify-Topic") || "";
@@ -41,6 +42,18 @@ export async function POST(request: Request) {
 
       case "products/delete":
         await handleProductDelete(shopRecord.id, payload);
+        break;
+
+      case "inventory_levels/update":
+        // Push the resource-heavy inventory sync to the Inngest background queue
+        await inngest.send({
+          name: "app/inventory.updated",
+          data: {
+            shopDomain: shop,
+            inventoryItemId: payload.inventory_item_id,
+            available: payload.available,
+          },
+        });
         break;
 
       case "orders/paid":

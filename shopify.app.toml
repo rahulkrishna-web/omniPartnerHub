@@ -10,7 +10,8 @@ embedded = true
 # Products: read/write for hub sync and add-to-store
 # Orders: write to create supplier draft orders and fulfill retailer orders
 # Fulfillments: read/write to track and push tracking numbers
-scopes = "read_products,write_products,read_orders,write_orders,read_fulfillments,write_fulfillments"
+# Inventory: read/write to sync stock levels across stores
+scopes = "read_products,write_products,read_orders,write_orders,read_fulfillments,write_fulfillments,read_inventory,write_inventory"
 
 [webhooks]
 api_version = "2024-04"
@@ -21,6 +22,10 @@ api_version = "2024-04"
 
   [[webhooks.subscriptions]]
   topics = ["fulfillments/create"]
+  uri = "/api/webhooks"
+
+  [[webhooks.subscriptions]]
+  topics = ["inventory_levels/update"]
   uri = "/api/webhooks"
 
 [auth]

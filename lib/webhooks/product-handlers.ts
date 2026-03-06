@@ -68,8 +68,9 @@ export async function handleProductUpdate(shopId: number, product: any) {
       
       const supplierShop = await db.query.shops.findFirst({ where: eq(shops.id, shopId) });
       const shopDomain = supplierShop?.shop?.replace(".myshopify.com", "") || "a partner";
-      const appendedBody = `<br><p><em>Sourced via OmniPartner Hub from ${shopDomain}</em></p>`;
-      const bodyHtml = product.body_html ? product.body_html + appendedBody : appendedBody;
+      
+      // Do not append appendedBody to body_html as requested by the user
+      const bodyHtml = product.body_html;
       const combinedTags = (product.tags ? product.tags + ", " : "") + "omnipartner-hub,dropship";
 
       // Build array of promises to execute concurrently
@@ -100,6 +101,8 @@ export async function handleProductUpdate(shopId: number, product: any) {
               option3: supplierVariant.option3,
               weight: supplierVariant.weight,
               weight_unit: supplierVariant.weight_unit,
+              inventory_management: supplierVariant.inventory_management || "shopify",
+              inventory_policy: supplierVariant.inventory_policy || "deny",
             };
           }) || [];
 

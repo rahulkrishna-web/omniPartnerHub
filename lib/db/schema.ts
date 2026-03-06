@@ -89,6 +89,8 @@ export const hubConnections = pgTable("hub_connections", {
   retailerShopifyVariantId: text("retailer_shopify_variant_id"),
   // Maps retailer variant IDs to supplier variant IDs: Record<string, string>
   variantMapping: jsonb("variant_mapping").$type<Record<string, string>>(),
+  // Maps retailer inventory_item_ids to supplier inventory_item_ids: Record<string, string>
+  inventoryItemMapping: jsonb("inventory_item_mapping").$type<Record<string, string>>(),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => {

@@ -20,5 +20,5 @@ embedded = false
 
 [app_proxy]
 url = "https://omni-partner-hub.vercel.app/api/proxy"
-subpath = "omni"
+subpath = "omnipartner-hub"
 prefix = "apps"

@@ -44,8 +44,8 @@ export async function GET(request: Request) {
   const path = url.pathname; // This will be /api/proxy/b/handle or similar
   console.log(`Debug Proxy: Parsing path ${path}`);
 
-  // Look for /b/ followed by the handle
-  const handleMatch = path.match(/\/b\/([^/]+)/);
+  // Look for /store/ followed by the handle
+  const handleMatch = path.match(/\/store\/([^/]+)/);
   const handle = handleMatch ? handleMatch[1] : null;
 
   if (!handle) {

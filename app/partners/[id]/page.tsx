@@ -123,9 +123,9 @@ export default function PartnerDetailsPage() {
                       <Badge tone="info">{`Tier ${partner.tier}`}</Badge>
                     </Box>
                     <Box>
-                        <Text variant="bodySm" tone="subdued" as="p">Affiliate Link</Text>
+                        <Text variant="bodySm" tone="subdued" as="p">Boutique Storefront</Text>
                         <code style={{ background: "#f1f1f1", padding: "4px", display: "block", marginTop: "4px", fontSize: "12px" }}>
-                            https://your-shop.com?ref=${partner.handle}
+                            https://your-store.com/apps/omnipartner-hub/store/${partner.handle}
                         </code>
                     </Box>
                   </BlockStack>

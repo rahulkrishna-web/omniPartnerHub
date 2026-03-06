@@ -91,7 +91,7 @@ export default function PartnersPage() {
     useIndexResourceState(partners);
 
   const rowMarkup = partners.map(({ id, name, email, handle, tier }, index) => {
-    const affiliateLink = `https://${shop}?ref=${handle}`;
+    const boutiqueUrl = `https://${shop}/apps/omnipartner-hub/store/${handle}`;
     return (
       <IndexTable.Row
         id={id.toString()}
@@ -178,7 +178,7 @@ export default function PartnersPage() {
                     { title: "Name" },
                     { title: "Email" },
                     { title: "Tier" },
-                    { title: "Affiliate Link" },
+                    { title: "Boutique URL" },
                   ]}
                 >
                   {rowMarkup}

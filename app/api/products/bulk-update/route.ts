@@ -22,7 +22,8 @@ export async function POST(request: Request) {
     }
 
     // Perform atomic bulk updates
-    for (const productId of productIds) {
+    for (const pid of productIds) {
+      const productId = Number(pid);
       await db.insert(productExchange)
         .values({ productId, isPublic })
         .onConflictDoUpdate({

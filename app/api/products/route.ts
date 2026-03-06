@@ -93,7 +93,7 @@ export async function PUT(request: Request) {
   // Atomic Upsert into productExchange
   await db.insert(productExchange)
     .values({
-      productId,
+      productId: Number(productId),
       wholesalePrice,
       retailPrice,
       isPublic

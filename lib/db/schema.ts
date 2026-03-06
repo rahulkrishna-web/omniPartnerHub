@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp, boolean, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, boolean, integer, uniqueIndex } from "drizzle-orm/pg-core";
 
 export const shops = pgTable("shops", {
   id: serial("id").primaryKey(),
@@ -50,4 +50,8 @@ export const productExchange = pgTable("product_exchange", {
   isPublic: boolean("is_public").default(false),
   commissionFlat: text("commission_flat"),
   commissionPercent: text("commission_percent"),
+}, (table) => {
+  return {
+    productIdIdx: uniqueIndex("product_id_idx").on(table.productId),
+  };
 });

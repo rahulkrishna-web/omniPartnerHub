@@ -1,0 +1,1 @@
+ALTER TABLE "hub_connections" ADD COLUMN "variant_mapping" jsonb;

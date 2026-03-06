@@ -59,47 +59,100 @@ export async function POST(request: Request) {
       where: eq(shops.id, supplierProduct.shopId!),
     });
 
-    // Create the product in the RETAILER's Shopify store
+    if (!supplierShop) return NextResponse.json({ error: "Supplier shop not found" }, { status: 404 });
+
+    // 1. Load Supplier Offline Session to fetch full product details
+    const supplierOfflineId = `offline_${supplierShop.shop}`;
+    const supplierSession = await sessionStorage.loadSession(supplierOfflineId);
+    if (!supplierSession) return NextResponse.json({ error: "Supplier session not found" }, { status: 404 });
+
+    const supplierClient = new shopify.clients.Rest({ session: supplierSession });
+    
+    // Fetch full product details from supplier store
+    const supplierResponse = await supplierClient.get({
+      path: `products/${supplierProduct.shopifyProductId}`,
+    });
+    const fullSupplierProduct: any = (supplierResponse.body as any).product;
+
+    if (!fullSupplierProduct) {
+      return NextResponse.json({ error: "Origin product not found on supplier store" }, { status: 404 });
+    }
+
+    // 2. Prepare Retailer Product Payload
+    // Strip IDs from supplier product to create a new one
+    const newProductPayload = {
+      title: fullSupplierProduct.title,
+      body_html: fullSupplierProduct.body_html 
+        ? fullSupplierProduct.body_html + `<br><p><em>Sourced via OmniPartner Hub from ${supplierShop.shop.replace(".myshopify.com", "")}</em></p>`
+        : `<p>Sourced via OmniPartner Hub from ${supplierShop.shop.replace(".myshopify.com", "")}</p>`,
+      vendor: fullSupplierProduct.vendor || supplierShop.shop.replace(".myshopify.com", ""),
+      product_type: fullSupplierProduct.product_type,
+      tags: (fullSupplierProduct.tags ? fullSupplierProduct.tags + ", " : "") + "omnipartner-hub,dropship",
+      options: fullSupplierProduct.options.map((opt: any) => ({
+        name: opt.name,
+        values: opt.values,
+      })),
+      images: fullSupplierProduct.images?.map((img: any) => ({
+        src: img.src,
+        alt: img.alt,
+      })) || [],
+      variants: fullSupplierProduct.variants.map((v: any) => ({
+        option1: v.option1,
+        option2: v.option2,
+        option3: v.option3,
+        price: v.price,
+        compare_at_price: v.compare_at_price,
+        weight: v.weight,
+        weight_unit: v.weight_unit,
+        inventory_management: null, // Retailer doesn't manage inventory
+        fulfillment_service: "manual",
+        requires_shipping: v.requires_shipping,
+      })),
+      published: false, // Start unpublished so they can review it
+    };
+
+    // 3. Create the product in the RETAILER's Shopify store
     const retailerClient = new shopify.clients.Rest({ session });
     const createResponse = await retailerClient.post({
       path: "products",
       data: {
-        product: {
-          title: supplierProduct.title,
-          vendor: supplierProduct.vendor || supplierShop?.shop?.replace(".myshopify.com", ""),
-          body_html: `<p>Sourced via OmniPartner Hub from ${supplierShop?.shop?.replace(".myshopify.com", "") || "a partner"}</p>`,
-          images: supplierProduct.image ? [{ src: supplierProduct.image }] : [],
-          variants: [
-            {
-              price: supplierProduct.exchange?.retailPrice || "0.00",
-              inventory_management: null, // Retailer doesn't manage inventory
-              fulfillment_service: "manual",
-            },
-          ],
-          tags: "omnipartner-hub,dropship",
-          published: false, // Start unpublished; retailer can publish manually
-        },
+        product: newProductPayload,
       },
     });
 
     const shopifyProduct = (createResponse.body as any).product;
-    const shopifyVariant = shopifyProduct?.variants?.[0];
+    const shopifyVariantFirst = shopifyProduct?.variants?.[0];
 
-    // Record the connection
+    // 4. Map Variant IDs between Supplier and Retailer
+    const variantMapping: Record<string, string> = {};
+    if (shopifyProduct.variants && fullSupplierProduct.variants) {
+      for (let i = 0; i < shopifyProduct.variants.length; i++) {
+        // Since we created them in the exact same order, index mapping works perfectly
+        const retailerVariantId = String(shopifyProduct.variants[i].id);
+        const supplierVariantId = String(fullSupplierProduct.variants[i].id);
+        if (retailerVariantId && supplierVariantId) {
+          variantMapping[retailerVariantId] = supplierVariantId;
+        }
+      }
+    }
+
+    // 5. Record the connection with variant mappings
     const [connection] = await db
       .insert(hubConnections)
       .values({
         supplierProductId: supplierProduct.id,
         retailerShopId: retailerShop.id,
         retailerShopifyProductId: String(shopifyProduct.id),
-        retailerShopifyVariantId: String(shopifyVariant?.id),
+        retailerShopifyVariantId: String(shopifyVariantFirst?.id),
+        variantMapping,
         isActive: true,
       })
       .onConflictDoUpdate({
         target: [hubConnections.supplierProductId, hubConnections.retailerShopId],
         set: {
           retailerShopifyProductId: String(shopifyProduct.id),
-          retailerShopifyVariantId: String(shopifyVariant?.id),
+          retailerShopifyVariantId: String(shopifyVariantFirst?.id),
+          variantMapping,
           isActive: true,
         },
       })
@@ -109,10 +162,10 @@ export async function POST(request: Request) {
       success: true,
       connection,
       shopifyProductId: shopifyProduct.id,
-      message: "Product added to your store. Publish it from your Shopify admin when ready.",
+      message: "Product cloned to your store. Publish it from your Shopify admin when ready.",
     });
   } catch (error: any) {
-    console.error("[AddToStore] Error:", error);
+    console.error("[AddToStore] Error:", error?.response?.body?.errors || error);
     return NextResponse.json({ error: error.message || "Failed to add product" }, { status: 500 });
   }
 }

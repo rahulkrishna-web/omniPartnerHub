@@ -15,6 +15,13 @@
       "when": 1772833857116,
       "tag": "0001_hesitant_abomination",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1772834366833,
+      "tag": "0002_cuddly_bromley",
+      "breakpoints": true
     }
   ]
 }

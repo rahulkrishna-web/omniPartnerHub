@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp, boolean, integer, uniqueIndex, unique } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, boolean, integer, uniqueIndex, unique, jsonb } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
 export const shops = pgTable("shops", {
@@ -87,6 +87,8 @@ export const hubConnections = pgTable("hub_connections", {
   // Product created in retailer's Shopify store
   retailerShopifyProductId: text("retailer_shopify_product_id"),
   retailerShopifyVariantId: text("retailer_shopify_variant_id"),
+  // Maps retailer variant IDs to supplier variant IDs: Record<string, string>
+  variantMapping: jsonb("variant_mapping").$type<Record<string, string>>(),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => {

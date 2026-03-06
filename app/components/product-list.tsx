@@ -5,78 +5,43 @@ import {
   Page,
   Layout,
   Card,
-  ResourceList,
-  ResourceItem,
+  IndexTable,
+  useIndexResourceState,
   Text,
   Thumbnail,
   Badge,
   Button,
-  TextField,
   BlockStack,
   InlineStack,
   Banner,
-  ButtonGroup,
-  EmptyState
+  EmptyState,
+  Spinner,
+  Box,
 } from "@shopify/polaris";
-// ... existing imports
 
-// Helper to get session token safely
-async function getSessionToken() {
-    if (typeof window === "undefined") return null;
-
-    // WaitFor shopify global
-    if (!window.shopify) {
-        console.log("Debug: window.shopify not defined yet, waiting...");
-        await new Promise((resolve) => {
-            const interval = setInterval(() => {
-                if (window.shopify) {
-                    clearInterval(interval);
-                    resolve(true);
-                }
-            }, 100);
-            setTimeout(() => {
-                clearInterval(interval);
-                resolve(false);
-            }, 2000);
-        });
-    }
-
-    if (window.shopify) {
-        try {
-            // App Bridge v4 (CDN) uses idToken()
-            if (window.shopify.idToken) {
-                const token = await window.shopify.idToken();
-                 console.log("Debug: idToken() success", token ? "Yes" : "No");
-                 return token;
-            }
-            // Fallback for older versions
-            if (window.shopify.id && window.shopify.id.getSessionToken) {
-                const token = await window.shopify.id.getSessionToken();
-                console.log("Debug: getSessionToken success", token ? "Yes" : "No");
-                return token;
-            }
-        } catch (e) {
-            console.error("Debug: Failed to get session token:", e);
-            return null;
-        }
-    } else {
-        console.error("Debug: window.shopify still missing after wait");
-    }
-    return null;
-}
+// ... existing helper getSessionToken ...
 
 export function ProductList() {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+  const [updatingIds, setUpdatingIds] = useState<number[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [shop, setShop] = useState<string>("");
 
+  const resourceName = {
+    singular: "product",
+    plural: "products",
+  };
+
+  const { selectedResources, allResourcesSelected, handleSelectionChange } =
+    useIndexResourceState(products);
+
   useEffect(() => {
     if (typeof window !== "undefined") {
-        const url = new URL(window.location.href);
-        const shopParam = url.searchParams.get("shop");
-        if (shopParam) setShop(shopParam);
+      const url = new URL(window.location.href);
+      const shopParam = url.searchParams.get("shop");
+      if (shopParam) setShop(shopParam);
     }
   }, []);
 
@@ -85,66 +50,77 @@ export function ProductList() {
     setError(null);
     try {
       const token = await getSessionToken();
-      console.log("Debug: Session Token for fetchProducts:", token ? "Present" : "Missing");
-      
-      const headers: any = {
-        'Content-Type': 'application/json'
-      };
-      
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
-      }
+      const headers: any = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
 
       const res = await fetch("/api/products", { headers });
-      
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        console.log("Debug: API Error Response:", res.status, errorData);
-        if (errorData.error) {
-            throw new Error(errorData.error);
-        }
-        throw new Error(`API Error: ${res.status} ${res.statusText}`);
-      }
+      if (!res.ok) throw new Error(`API Error: ${res.status}`);
       
       const data = await res.json();
-      if (data.products) {
-        setProducts(data.products);
-      } else if (data.error) {
-         setError(data.error);
-      }
+      setProducts(data.products || []);
     } catch (err: any) {
-      console.error(err);
-      if (err.message === "Unauthorized") {
-          setError("Unauthorized");
-      } else {
-          setError(err.message || "Failed to load products");
-      }
+      setError(err.message || "Failed to load products");
     }
     setLoading(false);
+  }
+
+  async function handleBulkUpdate(isPublic: boolean) {
+    setSyncing(true);
+    try {
+      const token = await getSessionToken();
+      const res = await fetch("/api/products/bulk-update", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ productIds: selectedResources, isPublic }),
+      });
+      if (!res.ok) throw new Error("Bulk update failed");
+      await fetchProducts();
+    } catch (err: any) {
+      setError(err.message);
+    }
+    setSyncing(false);
+  }
+
+  async function toggleVisibility(productId: number, currentStatus: boolean) {
+    setUpdatingIds((prev) => [...prev, productId]);
+    try {
+      const token = await getSessionToken();
+      const res = await fetch("/api/products", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ productId, isPublic: !currentStatus }),
+      });
+      if (!res.ok) throw new Error("Update failed");
+      await fetchProducts();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setUpdatingIds((prev) => prev.filter((id) => id !== productId));
+    }
   }
 
   async function handleSync() {
     setSyncing(true);
     setError(null);
     try {
-        const token = await getSessionToken();
-        console.log("Debug: Session Token for handleSync:", token ? "Present" : "Missing");
-
-        const headers: any = {
-            'Content-Type': 'application/json'
-        };
-        
-        if (token) {
-            headers["Authorization"] = `Bearer ${token}`;
-        }
-
-        const res = await fetch("/api/products/sync", { method: "POST", headers });
-        if (!res.ok) {
-             throw new Error("Sync failed. Check console.");
-        }
-        await fetchProducts();
+      const token = await getSessionToken();
+      const res = await fetch("/api/products/sync", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!res.ok) throw new Error("Sync failed");
+      await fetchProducts();
     } catch (err: any) {
-        setError(err.message);
+      setError(err.message);
     }
     setSyncing(false);
   }
@@ -153,18 +129,53 @@ export function ProductList() {
     fetchProducts();
   }, []);
 
-  const emptyStateMarkup = (
-    <EmptyState
-      heading="No products found"
-      action={{
-        content: 'Sync products',
-        onAction: handleSync,
-        loading: syncing
-      }}
-      image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
-    >
-      <p>Sync your products from Shopify to allow Partners to see them.</p>
-    </EmptyState>
+  const bulkActions = [
+    {
+      content: "Mark as Public",
+      onAction: () => handleBulkUpdate(true),
+    },
+    {
+      content: "Mark as Private",
+      onAction: () => handleBulkUpdate(false),
+    },
+  ];
+
+  const rowMarkup = products.map(
+    ({ id, title, image, vendor, exchange }, index) => {
+      const isUpdating = updatingIds.includes(id);
+      return (
+        <IndexTable.Row
+          id={id}
+          key={id}
+          selected={selectedResources.includes(id)}
+          position={index}
+        >
+          <IndexTable.Cell>
+            <Thumbnail source={image || ""} alt={title} size="small" />
+          </IndexTable.Cell>
+          <IndexTable.Cell>
+            <Text variant="bodyMd" fontWeight="bold" as="span">
+              {title}
+            </Text>
+          </IndexTable.Cell>
+          <IndexTable.Cell>{vendor}</IndexTable.Cell>
+          <IndexTable.Cell>
+            <Badge tone={exchange?.isPublic ? "success" : "attention"}>
+              {exchange?.isPublic ? "Public" : "Private"}
+            </Badge>
+          </IndexTable.Cell>
+          <IndexTable.Cell>
+            <Button
+              size="slim"
+              loading={isUpdating}
+              onClick={() => toggleVisibility(id, exchange?.isPublic)}
+            >
+              {exchange?.isPublic ? "Make Private" : "Make Public"}
+            </Button>
+          </IndexTable.Cell>
+        </IndexTable.Row>
+      );
+    }
   );
 
   return (
@@ -179,67 +190,49 @@ export function ProductList() {
       <Layout>
         <Layout.Section>
           {error && (
-            <Banner 
-                tone="critical" 
-                onDismiss={() => setError(null)}
-                title={error === "Unauthorized" ? "Authentication Failed" : "Error"}
-            >
-              <p>
-                {error === "Unauthorized" 
-                    ? "The app could not authenticate with Shopify. This usually happens if cookies are blocked or the session expired." 
-                    : error}
-              </p>
-              { (error === "Unauthorized" || error === "Session not found") && shop && (
-                  <div style={{marginTop: 10}}>
-                    <Button onClick={() => {
-                        window.open(`/api/auth?shop=${shop}`, '_top');
-                    }}>
-                        Re-authenticate
-                    </Button>
-                  </div>
-              )}
+            <Banner tone="critical" onDismiss={() => setError(null)}>
+              <p>{error}</p>
             </Banner>
           )}
-          <Card>
-            <ResourceList
-              resourceName={{ singular: "product", plural: "products" }}
-              items={products}
-              emptyState={emptyStateMarkup}
-              renderItem={(item) => {
-                const { id, title, image, vendor, exchange } = item;
-                const media = (
-                  <Thumbnail
-                    source={image || ""}
-                    alt={title}
-                  />
-                );
-
-                return (
-                  <ResourceItem
-                    id={id}
-                    url="#"
-                    media={media}
-                    accessibilityLabel={`View details for ${title}`}
-                  >
-                    <BlockStack gap="200">
-                        <InlineStack align="space-between">
-                            <Text variant="bodyMd" fontWeight="bold" as="h3">
-                                {title}
-                            </Text>
-                            <Badge tone={exchange?.isPublic ? "success" : "attention"}>
-                                {exchange?.isPublic ? "Public" : "Private"}
-                            </Badge>
-                        </InlineStack>
-                        <Text as="p" variant="bodySm" tone="subdued">
-                            {vendor}
-                        </Text>
-                       {/* We can add inline edit fields here later */}
-                    </BlockStack>
-                  </ResourceItem>
-                );
-              }}
-              loading={loading}
-            />
+          <Card padding="0">
+            {loading ? (
+              <Box padding="400">
+                <InlineStack align="center">
+                  <Spinner size="large" />
+                </InlineStack>
+              </Box>
+            ) : products.length === 0 ? (
+              <EmptyState
+                heading="No products found"
+                action={{
+                  content: "Sync products",
+                  onAction: handleSync,
+                  loading: syncing,
+                }}
+                image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
+              >
+                <p>Sync your products from Shopify to start managing them.</p>
+              </EmptyState>
+            ) : (
+              <IndexTable
+                resourceName={resourceName}
+                itemCount={products.length}
+                selectedItemsCount={
+                  allResourcesSelected ? "All" : selectedResources.length
+                }
+                onSelectionChange={handleSelectionChange}
+                bulkActions={bulkActions}
+                headings={[
+                  { title: "" },
+                  { title: "Product" },
+                  { title: "Vendor" },
+                  { title: "Status" },
+                  { title: "Actions" },
+                ]}
+              >
+                {rowMarkup}
+              </IndexTable>
+            )}
           </Card>
         </Layout.Section>
       </Layout>

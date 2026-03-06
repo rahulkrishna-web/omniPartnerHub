@@ -47,6 +47,9 @@ export const products = pgTable("products", {
   title: text("title").notNull(),
   image: text("image"),
   vendor: text("vendor"),
+  // True when this product was added to this store via the OmniPartner Hub "Add to My Store" flow.
+  // Hub-sourced products cannot be re-published to the hub to prevent circular chains.
+  isHubSourced: boolean("is_hub_sourced").default(false),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 

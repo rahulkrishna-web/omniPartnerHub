@@ -5,11 +5,14 @@ import { eq, and } from "drizzle-orm";
 export async function handleProductUpdate(shopId: number, product: any) {
   const shopifyProductId = String(product.id);
   const title = product.title;
-  // Handle image safely (can be null, object, or inside images array depending on API version)
   const image = product.image?.src || (product.images?.length > 0 ? product.images[0].src : null);
   const vendor = product.vendor;
 
-  // Check if product exists for this shop
+  // Detect if this product was created via OmniPartner Hub "Add to My Store"
+  // Such products are tagged with "omnipartner-hub" in Shopify
+  const tags: string = product.tags || "";
+  const isHubSourced = tags.toLowerCase().includes("omnipartner-hub");
+
   const existingProducts = await db.select().from(products).where(
     and(
       eq(products.shopId, shopId),
@@ -26,6 +29,9 @@ export async function handleProductUpdate(shopId: number, product: any) {
         title,
         image,
         vendor,
+        // Preserve existing isHubSourced — once hub-sourced, always hub-sourced
+        // (prevents re-labelling if tags are removed later)
+        isHubSourced: existingProduct.isHubSourced || isHubSourced,
         updatedAt: new Date(),
       })
       .where(eq(products.id, existingProduct.id));
@@ -36,6 +42,7 @@ export async function handleProductUpdate(shopId: number, product: any) {
       title,
       image,
       vendor,
+      isHubSourced,
     });
   }
 }

@@ -36,10 +36,11 @@ interface HubProductCardProps {
   product: HubProduct;
   onGenerateLink: (productId: number) => void;
   isConnected?: boolean;
+  isOwnProduct?: boolean;
   onAddToStore: (productId: number) => Promise<void>;
 }
 
-export function HubProductCard({ product, onGenerateLink, isConnected = false, onAddToStore }: HubProductCardProps) {
+export function HubProductCard({ product, onGenerateLink, isConnected = false, isOwnProduct = false, onAddToStore }: HubProductCardProps) {
   const [detailOpen, setDetailOpen] = useState(false);
   const [adding, setAdding] = useState(false);
 
@@ -92,7 +93,8 @@ export function HubProductCard({ product, onGenerateLink, isConnected = false, o
           <InlineStack gap="100" blockAlign="center">
             <Text variant="bodyXs" tone="subdued" as="span">Sold by:</Text>
             <Badge tone="info">{supplierName}</Badge>
-            {isConnected && <Badge tone="success">Added ✓</Badge>}
+            {isOwnProduct && <Badge tone="magic">Your Product</Badge>}
+            {isConnected && !isOwnProduct && <Badge tone="success">Added ✓</Badge>}
           </InlineStack>
           </BlockStack>
 
@@ -118,7 +120,11 @@ export function HubProductCard({ product, onGenerateLink, isConnected = false, o
             >
               Details
             </Button>
-            {isConnected ? (
+            {isOwnProduct ? (
+              <Button variant="secondary" size="slim" disabled>
+                Your Listed Product
+              </Button>
+            ) : isConnected ? (
               <Button variant="secondary" size="slim" disabled>
                 Added to Store ✓
               </Button>

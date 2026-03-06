@@ -204,7 +204,7 @@ export function ProductList() {
   }
 
   const rowMarkup = products.map(
-    ({ id, title, image, vendor, exchange }, index) => {
+    ({ id, title, image, vendor, exchange, isHubSourced }, index) => {
       const isUpdating = updatingIds.includes(id);
       return (
         <IndexTable.Row
@@ -244,18 +244,28 @@ export function ProductList() {
             />
           </IndexTable.Cell>
           <IndexTable.Cell>
-            <Badge tone={exchange?.isPublic ? "success" : "attention"}>
-              {exchange?.isPublic ? "Public" : "Private"}
-            </Badge>
+            {isHubSourced ? (
+              <Badge tone="info">Dropshipped</Badge>
+            ) : (
+              <Badge tone={exchange?.isPublic ? "success" : "attention"}>
+                {exchange?.isPublic ? "Public" : "Private"}
+              </Badge>
+            )}
           </IndexTable.Cell>
           <IndexTable.Cell>
-            <Button
-              size="slim"
-              loading={isUpdating}
-              onClick={() => toggleVisibility(id, exchange?.isPublic)}
-            >
-              {exchange?.isPublic ? "Make Private" : "Make Public"}
-            </Button>
+            {isHubSourced ? (
+              <Button size="slim" disabled>
+                Dropshipped ·  Cannot Publish
+              </Button>
+            ) : (
+              <Button
+                size="slim"
+                loading={isUpdating}
+                onClick={() => toggleVisibility(id, exchange?.isPublic)}
+              >
+                {exchange?.isPublic ? "Make Private" : "Make Public"}
+              </Button>
+            )}
           </IndexTable.Cell>
         </IndexTable.Row>
       );

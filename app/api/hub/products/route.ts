@@ -34,6 +34,7 @@ export async function GET(request: Request) {
         commissionPercent: productExchange.commissionPercent,
         commissionFlat: productExchange.commissionFlat,
         supplierShop: shops.shop,
+        supplierShopId: shops.id,
         supplierCurrency: shops.currency,
         supplierMoneyFormat: shops.moneyFormat,
       })
@@ -42,7 +43,17 @@ export async function GET(request: Request) {
       .innerJoin(shops, eq(products.shopId, shops.id))
       .where(eq(productExchange.isPublic, true));
 
-    return NextResponse.json({ products: publicProducts });
+    // Use the already-loaded session to identify the current shop
+    const currentShop = session.shop;
+
+    const retailerShop = await db.query.shops.findFirst({
+      where: eq(shops.shop, currentShop),
+    });
+
+    return NextResponse.json({
+      products: publicProducts,
+      currentShopId: retailerShop?.id ?? null,
+    });
   } catch (error) {
     console.error("[HubProducts] Error fetching products:", error);
     return NextResponse.json({ error: "Failed to fetch products" }, { status: 500 });

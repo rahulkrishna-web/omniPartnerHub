@@ -18,6 +18,7 @@ import {
 export default function ProductHubPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [connections, setConnections] = useState<any[]>([]);
+  const [currentShopId, setCurrentShopId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -39,6 +40,7 @@ export default function ProductHubPage() {
       if (productsData.error) throw new Error(productsData.error);
 
       setProducts(productsData.products || []);
+      setCurrentShopId(productsData.currentShopId ?? null);
       setConnections(connectionsData.connections || []);
     } catch (err: any) {
       console.error("Hub fetch error:", err);
@@ -144,9 +146,9 @@ export default function ProductHubPage() {
                 <HubProductCard
                   product={product}
                   isConnected={isProductConnected(product.id)}
+                  isOwnProduct={currentShopId !== null && product.supplierShopId === currentShopId}
                   onAddToStore={handleAddToStore}
                   onGenerateLink={(id) => {
-                    // Placeholder for affiliate link logic
                     alert(`Affiliate link for product ${id} coming soon!`);
                   }}
                 />

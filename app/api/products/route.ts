@@ -56,6 +56,7 @@ export async function GET(request: Request) {
       title: products.title,
       image: products.image,
       vendor: products.vendor,
+      isHubSourced: products.isHubSourced,
       wholesalePrice: productExchange.wholesalePrice,
       retailPrice: productExchange.retailPrice,
       isPublic: productExchange.isPublic,
@@ -71,6 +72,7 @@ export async function GET(request: Request) {
     title: row.title,
     image: row.image,
     vendor: row.vendor,
+    isHubSourced: row.isHubSourced ?? false,
     exchange: {
       wholesalePrice: row.wholesalePrice,
       retailPrice: row.retailPrice,

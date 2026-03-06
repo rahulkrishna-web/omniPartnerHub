@@ -20,7 +20,6 @@ import {
   EmptyState,
   Box,
   InlineStack,
-  ClipboardIcon,
 } from "@shopify/polaris";
 import { getSessionToken } from "../lib/session";
 
@@ -106,7 +105,7 @@ export default function PartnersPage() {
         </IndexTable.Cell>
         <IndexTable.Cell>{email}</IndexTable.Cell>
         <IndexTable.Cell>
-          <Badge tone="info">Tier {tier}</Badge>
+          <Badge tone="info">{`Tier ${tier}`}</Badge>
         </IndexTable.Cell>
         <IndexTable.Cell>
           <InlineStack gap="200" align="start">

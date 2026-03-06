@@ -105,11 +105,16 @@ export default function PartnersPage() {
         position={index}
       >
         <IndexTable.Cell>
-          <Button variant="plain" url={`/partners/${id}`} textAlign="start">
-            <Text variant="bodyMd" fontWeight="bold" as="span">
-              {name}
-            </Text>
-          </Button>
+          <div onClick={(e) => e.stopPropagation()}>
+            <Link
+              url={`/partners/${id}`}
+              dataPrimaryLink
+            >
+              <Text variant="bodyMd" fontWeight="bold" as="span">
+                {name}
+              </Text>
+            </Link>
+          </div>
         </IndexTable.Cell>
         <IndexTable.Cell>{email}</IndexTable.Cell>
         <IndexTable.Cell>

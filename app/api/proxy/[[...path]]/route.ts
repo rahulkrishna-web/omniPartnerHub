@@ -1,4 +1,3 @@
-import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { products, productExchange, partners } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
@@ -24,37 +23,36 @@ function verifyHmac(url: URL) {
   return calculatedHmac === hmac;
 }
 
-export async function GET(request: Request) {
+export async function GET(
+  request: Request,
+  { params }: { params: { path?: string[] } }
+) {
   const url = new URL(request.url);
-  console.log(`Debug Proxy: Request received for ${url.pathname}${url.search}`);
+  
+  // Shopify specifically sends the intended path in this header
+  const proxyPath = request.headers.get("x-shopify-proxy-path-query") || "";
+  console.log(`[Proxy Diagnostic] Full URL: ${request.url}`);
+  console.log(`[Proxy Diagnostic] x-shopify-proxy-path-query: ${proxyPath}`);
+  console.log(`[Proxy Diagnostic] params.path: ${params.path?.join("/")}`);
 
   // 1. Verify Signature
   if (!verifyHmac(url)) {
-    console.warn("Debug Proxy: HMAC verification failed");
     console.warn("[Proxy Diagnostic] HMAC verification failed");
     return new Response("Unauthorized Signature", { status: 401 });
   }
 
   // 2. Resolve Partner
-  const path = url.pathname;
-  
-  // Try regex match for /store/handle
-  let handleMatch = path.match(/\/store\/([^/]+)/);
-  
-  // Fallback: If Shopify strips parts of the path, try to find the handle at the end
-  if (!handleMatch) {
-    const segments = path.split("/").filter(Boolean);
-    // If we have a path like /api/proxy/rahul
-    if (segments.length >= 3 && segments[segments.length - 2] === "store") {
-       handleMatch = [null, segments[segments.length - 1]] as any;
-    }
-  }
+  // We'll check the header first, then the params, then the raw URL
+  const lookupPath = proxyPath || params.path?.join("/") || url.pathname;
+  console.log(`[Proxy Diagnostic] Resolving handle from combined path: ${lookupPath}`);
 
+  // Look for store/[handle] anywhere in the path
+  const handleMatch = lookupPath.match(/store\/([^/?]+)/);
   const handle = handleMatch ? handleMatch[1] : null;
 
   if (!handle) {
-    console.error(`[Proxy Diagnostic] 404 - Could not resolve handle from path: ${path}`);
-    return new Response(`Partner Handle Not Found (Path: ${path})`, { status: 404 });
+    console.error(`[Proxy Diagnostic] 404 - Could not resolve handle from path: ${lookupPath}`);
+    return new Response(`Partner Boutique Not Found. (Debug Path: ${lookupPath})`, { status: 404 });
   }
 
   console.log(`[Proxy Diagnostic] Success - Resolved handle: ${handle}`);
@@ -91,6 +89,7 @@ export async function GET(request: Request) {
     // 5. Render Liquid-compatible HTML
     const html = `
       <style>
+        .omni-boutique h2 { margin-bottom: 20px; text-align: center; }
         .omni-grid {
           display: grid;
           grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -103,42 +102,48 @@ export async function GET(request: Request) {
           padding: 15px;
           text-align: center;
           background: #fff;
+          transition: transform 0.2s;
         }
+        .omni-card:hover { transform: translateY(-5px); }
         .omni-card img {
           max-width: 100%;
           border-radius: 4px;
-          height: 150px;
+          height: 180px;
           object-fit: cover;
         }
         .omni-title {
           font-weight: bold;
           margin: 10px 0;
           display: block;
+          min-height: 40px;
         }
         .omni-price {
           color: #2c6ecb;
           font-size: 1.1em;
+          margin-bottom: 10px;
         }
         .omni-btn {
           display: block;
           background: #008060;
-          color: white;
-          padding: 8px;
+          color: white !important;
+          padding: 10px;
           border-radius: 4px;
           text-decoration: none;
-          margin-top: 10px;
+          font-weight: bold;
         }
+        .omni-btn:hover { background: #004c3f; }
       </style>
 
       <div class="omni-boutique">
-        <h2>${partner.name}'s Collection</h2>
+        <h2>Curated by ${partner.name}</h2>
         <div class="omni-grid">
-          ${publicProducts.map(p => `
+          ${publicProducts.length === 0 ? '<p>No products in this boutique yet.</p>' : ''}
+          ${publicProducts.map((p: any) => `
             <div class="omni-card">
               <img src="${p.image || ''}" alt="${p.title}">
               <span class="omni-title">${p.title}</span>
               <div class="omni-price">$${p.retailPrice || '0.00'}</div>
-              <a href="/products/${p.title.toLowerCase().replace(/\s+/g, '-')}" class="omni-btn">View Details</a>
+              <a href="/products/${p.title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '')}" class="omni-btn">View Product</a>
             </div>
           `).join('')}
         </div>
@@ -151,6 +156,7 @@ export async function GET(request: Request) {
       },
     });
   } catch (error: any) {
+    console.error("[Proxy Diagnostic] Runtime Error:", error);
     return new Response("Internal Server Error", { status: 500 });
   }
 }

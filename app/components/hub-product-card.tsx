@@ -51,63 +51,73 @@ export function HubProductCard({ product, onGenerateLink, isConnected = false, i
   const supplierName = product.supplierShop.replace(".myshopify.com", "");
 
   const commissionText = product.commissionPercent
-    ? `${product.commissionPercent}%`
+    ? `${product.commissionPercent}% per sale`
     : product.commissionFlat
-      ? `${symbol}${product.commissionFlat}`
-      : "N/A";
+      ? `${symbol}${product.commissionFlat} flat`
+      : null; // null = no commission set
+
+  const retailPrice = product.retailPrice && parseFloat(product.retailPrice) > 0
+    ? `${symbol}${product.retailPrice}`
+    : null;
 
   return (
     <>
       <Card>
         <BlockStack gap="300">
           {/* Product Image */}
-          {product.image && (
-            <div
-              style={{
-                minHeight: "200px",
-                width: "100%",
-                overflow: "hidden",
-                borderRadius: "8px",
-                backgroundColor: "#f1f1f1",
-                cursor: "pointer",
-              }}
-              onClick={() => setDetailOpen(true)}
-            >
+          <div
+            style={{
+              height: "200px",
+              width: "100%",
+              overflow: "hidden",
+              borderRadius: "8px",
+              backgroundColor: "#f4f6f8",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            onClick={() => setDetailOpen(true)}
+          >
+            {product.image ? (
               <img
                 src={product.image}
                 alt={product.title}
                 style={{ width: "100%", height: "200px", objectFit: "cover" }}
               />
-            </div>
-          )}
+            ) : (
+              <Text variant="bodyMd" tone="subdued" as="p">No image</Text>
+            )}
+          </div>
 
-          {/* Title + Vendor */}
+          {/* Title + Vendor + Status badges */}
           <BlockStack gap="100">
-            <Text variant="headingMd" as="h3">
-              {product.title}
-            </Text>
+            <Text variant="headingMd" as="h3">{product.title}</Text>
             <Text variant="bodySm" tone="subdued" as="p">
               by {product.vendor || supplierName}
             </Text>
-            {/* Supplier Store + Connection Status */}
-          <InlineStack gap="100" blockAlign="center">
-            <Text variant="bodyXs" tone="subdued" as="span">Sold by:</Text>
-            <Badge tone="info">{supplierName}</Badge>
-            {isOwnProduct && <Badge tone="magic">Your Product</Badge>}
-            {isConnected && !isOwnProduct && <Badge tone="success">Added ✓</Badge>}
-          </InlineStack>
+            <InlineStack gap="100" blockAlign="center" wrap={false}>
+              <Badge tone="info">{supplierName}</Badge>
+              {isOwnProduct && <Badge tone="magic">Your Product</Badge>}
+              {isConnected && !isOwnProduct && <Badge tone="success">Added ✓</Badge>}
+            </InlineStack>
           </BlockStack>
 
           {/* Price + Commission */}
           <InlineStack align="space-between" blockAlign="center">
             <BlockStack gap="050">
               <Text variant="bodyXs" tone="subdued" as="p">Retail Price</Text>
-              <Text variant="headingLg" as="p">
-                {symbol}{product.retailPrice || "0.00"}
-              </Text>
-              <Text variant="bodyXs" tone="subdued" as="p">{currency}</Text>
+              {retailPrice ? (
+                <Text variant="headingLg" as="p">{retailPrice}</Text>
+              ) : (
+                <Text variant="bodyMd" tone="subdued" as="p">Not set by supplier</Text>
+              )}
             </BlockStack>
-            <Badge tone="success">{`Earn ${commissionText}`}</Badge>
+            {commissionText ? (
+              <Badge tone="success">{`Earn ${commissionText}`}</Badge>
+            ) : (
+              <Badge tone="attention">Contact Supplier</Badge>
+            )}
           </InlineStack>
 
           {/* Actions */}

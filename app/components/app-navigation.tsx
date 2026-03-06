@@ -8,6 +8,7 @@ export function AppNavigation() {
       <Link href="/" rel="home">Dashboard</Link>
       <Link href="/products">My Products</Link>
       <Link href="/hub">Product Hub</Link>
+      <Link href="/hub/orders">Hub Orders</Link>
       <Link href="/partners">Partners</Link>
       <Link href="/settings">Settings</Link>
     </ui-nav-menu>

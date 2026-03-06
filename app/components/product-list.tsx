@@ -19,6 +19,7 @@ import {
   EmptyState,
   Spinner,
   Box,
+  Link,
 } from "@shopify/polaris";
 
 // Helper to get session token safely
@@ -239,9 +240,16 @@ export function ProductList() {
             <Thumbnail source={image || ""} alt={title} size="small" />
           </IndexTable.Cell>
           <IndexTable.Cell>
-            <Text variant="bodyMd" fontWeight="bold" as="span">
-              {title}
-            </Text>
+            <div onClick={(e) => e.stopPropagation()}>
+              <Link
+                url={`/products/${id}`}
+                dataPrimaryLink
+              >
+                <Text variant="bodyMd" fontWeight="bold" as="span">
+                  {title}
+                </Text>
+              </Link>
+            </div>
           </IndexTable.Cell>
           <IndexTable.Cell>{vendor}</IndexTable.Cell>
           <IndexTable.Cell>

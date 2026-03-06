@@ -1,4 +1,5 @@
 import { pgTable, text, serial, timestamp, boolean, integer, uniqueIndex } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
 
 export const shops = pgTable("shops", {
   id: serial("id").primaryKey(),
@@ -9,6 +10,10 @@ export const shops = pgTable("shops", {
   installedAt: timestamp("installed_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
+
+export const shopsRelations = relations(shops, ({ many }) => ({
+	products: many(products),
+}));
 
 export const sessions = pgTable("sessions", {
   id: text("id").primaryKey(),
@@ -42,6 +47,14 @@ export const products = pgTable("products", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+export const productsRelations = relations(products, ({ one }) => ({
+	shop: one(shops, { fields: [products.shopId], references: [shops.id] }),
+	exchange: one(productExchange, {
+		fields: [products.id],
+		references: [productExchange.productId],
+	}),
+}));
+
 export const productExchange = pgTable("product_exchange", {
   id: serial("id").primaryKey(),
   productId: integer("product_id").references(() => products.id).unique(),
@@ -55,3 +68,7 @@ export const productExchange = pgTable("product_exchange", {
     productIdIdx: uniqueIndex("product_id_idx").on(table.productId),
   };
 });
+
+export const productExchangeRelations = relations(productExchange, ({ one }) => ({
+	product: one(products, { fields: [productExchange.productId], references: [products.id] }),
+}));

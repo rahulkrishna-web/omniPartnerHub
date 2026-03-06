@@ -7,35 +7,35 @@ export async function GET() {
     try {
         console.log("Starting Radical DB Fix/Cleanup...");
 
-        // 1. Fix column types
-        // 2. Remove duplicates
-        // 3. Add UNIQUE constraint
+        // 1. Correct Column Type
+        // 2. Remove Duplicates
+        // 3. Create the UNIQUE INDEX Drizzle expects
         await db.execute(sql`
-            -- Fix column types
+            -- 1. Correct Column Type
             ALTER TABLE product_exchange ALTER COLUMN product_id DROP DEFAULT;
             ALTER TABLE product_exchange ALTER COLUMN product_id TYPE integer USING product_id::integer;
             
-            -- Deduplicate: Keep only the row with the highest ID (most recent) for each product_id
+            -- 2. Deduplicate
             DELETE FROM product_exchange a
             USING product_exchange b
             WHERE a.id < b.id
             AND a.product_id = b.product_id;
 
-            -- Add Unique constraint if it doesn't exist
-            -- We'll try to drop it first to avoid errors if it exists
-            ALTER TABLE product_exchange DROP CONSTRAINT IF EXISTS product_id_unique;
-            ALTER TABLE product_exchange ADD CONSTRAINT product_id_unique UNIQUE (product_id);
+            -- 3. Create Unique Index (matches drizzle schema)
+            DROP INDEX IF EXISTS product_id_idx;
+            CREATE UNIQUE INDEX product_id_idx ON product_exchange (product_id);
 
-            -- Fix other tables
+            -- 4. Fix other shop_id columns
             ALTER TABLE partners ALTER COLUMN shop_id DROP DEFAULT;
             ALTER TABLE partners ALTER COLUMN shop_id TYPE integer USING shop_id::integer;
             ALTER TABLE products ALTER COLUMN shop_id DROP DEFAULT;
             ALTER TABLE products ALTER COLUMN shop_id TYPE integer USING shop_id::integer;
         `);
 
-        return NextResponse.json({ success: true, message: "DB Schema fixed, duplicates removed, and uniqueness enforced." });
+        console.log("DB Repair: Success");
+        return NextResponse.json({ success: true, message: "DB Radical Fix Complete. Unique index created. Persistence should now work perfectly." });
     } catch (error: any) {
-        console.error("Migration Error:", error);
+        console.error("DB Repair Error:", error);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }

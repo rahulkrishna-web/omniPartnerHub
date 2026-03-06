@@ -9,78 +9,117 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: Request) {
   const authHeader = request.headers.get("Authorization");
 
-  let sessionId;
+  let sessionId: string | undefined;
+  let shopDomain: string | undefined;
+
+  // Primary: try offline session from cookie/header
   try {
     sessionId = await shopify.session.getCurrentId({ isOnline: false, rawRequest: request });
   } catch (e) {
-    console.error("[Products] getCurrentId failed:", e);
+    // Ignore — will fall through to Bearer token path
   }
 
-  if (!sessionId) {
-    if (authHeader) {
-      const token = authHeader.replace("Bearer ", "");
-      try {
-        await shopify.session.decodeSessionToken(token);
-      } catch (e) {
-        console.error("[Products] Failed to decode token:", e);
-      }
+  if (sessionId) {
+    const session = await sessionStorage.loadSession(sessionId);
+    shopDomain = session?.shop;
+  }
+
+  // Fallback: decode Bearer JWT to get the shop domain
+  if (!shopDomain && authHeader) {
+    const token = authHeader.replace("Bearer ", "");
+    try {
+      const payload = await shopify.session.decodeSessionToken(token);
+      shopDomain = (payload as any)?.dest?.replace("https://", "");
+    } catch (e) {
+      console.error("[Products] Failed to decode Bearer token:", e);
     }
+  }
+
+  if (!shopDomain) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  const session = await sessionStorage.loadSession(sessionId);
-  if (!session) {
-    return NextResponse.json({ error: "Session not found" }, { status: 401 });
-  }
 
-  // Get Shop
+  // Get Shop record
   const shopRecord = await db.query.shops.findFirst({
-    where: eq(shops.shop, session.shop),
+    where: eq(shops.shop, shopDomain),
   });
 
   if (!shopRecord) {
     return NextResponse.json({ error: "Shop not found in DB" }, { status: 404 });
   }
 
-  // Fetch Products with Exchange Data (left join to include products without exchange settings)
-  const result = await db
+  // Flat select — avoids Drizzle leftJoin nested object serialization issues
+  const rows = await db
     .select({
       id: products.id,
       shopifyProductId: products.shopifyProductId,
       title: products.title,
       image: products.image,
       vendor: products.vendor,
-      exchange: {
-        wholesalePrice: productExchange.wholesalePrice,
-        retailPrice: productExchange.retailPrice,
-        isPublic: productExchange.isPublic,
-      }
+      wholesalePrice: productExchange.wholesalePrice,
+      retailPrice: productExchange.retailPrice,
+      isPublic: productExchange.isPublic,
     })
     .from(products)
     .leftJoin(productExchange, eq(products.id, productExchange.productId))
     .where(eq(products.shopId, shopRecord.id));
 
+  // Map flat rows → nested exchange object expected by the UI
+  const result = rows.map((row) => ({
+    id: row.id,
+    shopifyProductId: row.shopifyProductId,
+    title: row.title,
+    image: row.image,
+    vendor: row.vendor,
+    exchange: {
+      wholesalePrice: row.wholesalePrice,
+      retailPrice: row.retailPrice,
+      isPublic: row.isPublic ?? false,
+    },
+  }));
+
   return NextResponse.json({
     products: result,
     shop: {
       currency: shopRecord.currency,
-      moneyFormat: shopRecord.moneyFormat
-    }
+      moneyFormat: shopRecord.moneyFormat,
+    },
   });
 }
 
 export async function PUT(request: Request) {
-  const sessionId = await shopify.session.getCurrentId({ isOnline: false, rawRequest: request });
-  if (!sessionId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  const session = await sessionStorage.loadSession(sessionId);
-  if (!session) {
-    return NextResponse.json({ error: "Session not found" }, { status: 401 });
+  const authHeader = request.headers.get("Authorization");
+
+  let sessionId: string | undefined;
+  let shopDomain: string | undefined;
+
+  try {
+    sessionId = await shopify.session.getCurrentId({ isOnline: false, rawRequest: request });
+  } catch (e) {
+    // ignore
   }
 
-  // Get shop to verify ownership
+  if (sessionId) {
+    const session = await sessionStorage.loadSession(sessionId);
+    shopDomain = session?.shop;
+  }
+
+  if (!shopDomain && authHeader) {
+    const token = authHeader.replace("Bearer ", "");
+    try {
+      const payload = await shopify.session.decodeSessionToken(token);
+      shopDomain = (payload as any)?.dest?.replace("https://", "");
+    } catch (e) {
+      console.error("[Products PUT] Failed to decode Bearer token:", e);
+    }
+  }
+
+  if (!shopDomain) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const shopRecord = await db.query.shops.findFirst({
-    where: eq(shops.shop, session.shop),
+    where: eq(shops.shop, shopDomain),
   });
   if (!shopRecord) {
     return NextResponse.json({ error: "Shop not found" }, { status: 404 });
@@ -111,15 +150,11 @@ export async function PUT(request: Request) {
       productId: Number(productId),
       wholesalePrice,
       retailPrice,
-      isPublic
+      isPublic,
     })
     .onConflictDoUpdate({
       target: productExchange.productId,
-      set: {
-        wholesalePrice,
-        retailPrice,
-        isPublic
-      }
+      set: { wholesalePrice, retailPrice, isPublic },
     });
 
   return NextResponse.json({ success: true });

@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect, useState, useCallback } from "react";
 import { AppNavigation } from "../components/app-navigation";
 import { HubProductCard } from "../components/hub-product-card";

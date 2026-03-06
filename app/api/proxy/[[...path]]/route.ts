@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { products, productExchange, partners } from "@/lib/db/schema";
+import { products, productExchange, partners, shops } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import crypto from "crypto";
 
@@ -45,34 +45,22 @@ export async function GET(
   { params }: { params: { path?: string[] } }
 ) {
   const url = new URL(request.url);
-  
-  // Shopify specifically sends the intended path in this header
-  const proxyPath = request.headers.get("x-shopify-proxy-path-query") || "";
-  console.log(`[Proxy Diagnostic] Full URL: ${request.url}`);
-  console.log(`[Proxy Diagnostic] x-shopify-proxy-path-query: ${proxyPath}`);
-  console.log(`[Proxy Diagnostic] params.path: ${params.path?.join("/")}`);
 
   // 1. Verify Signature
   if (!verifyHmac(url)) {
-    console.warn("[Proxy Diagnostic] HMAC verification failed");
     return new Response("Unauthorized Signature", { status: 401 });
   }
 
-  // 2. Resolve Partner
-  // We'll check the header first, then the params, then the raw URL
+  // 2. Resolve handle from proxy path header or params
+  const proxyPath = request.headers.get("x-shopify-proxy-path-query") || "";
   const lookupPath = proxyPath || params.path?.join("/") || url.pathname;
-  console.log(`[Proxy Diagnostic] Resolving handle from combined path: ${lookupPath}`);
 
-  // Look for store/[handle] anywhere in the path
   const handleMatch = lookupPath.match(/store\/([^/?]+)/);
   const handle = handleMatch ? handleMatch[1] : null;
 
   if (!handle) {
-    console.error(`[Proxy Diagnostic] 404 - Could not resolve handle from path: ${lookupPath}`);
-    return new Response(`Partner Boutique Not Found. (Debug Path: ${lookupPath})`, { status: 404 });
+    return new Response(`Partner Boutique Not Found.`, { status: 404 });
   }
-
-  console.log(`[Proxy Diagnostic] Success - Resolved handle: ${handle}`);
 
   try {
     // 3. Find Partner & Shop
@@ -83,6 +71,12 @@ export async function GET(
     if (!partner || !partner.shopId) {
         return new Response("Boutique Not Found or Inactive", { status: 404 });
     }
+
+    // Get shop currency info
+    const shopRecord = await db.query.shops.findFirst({
+        where: eq(shops.id, partner.shopId as number)
+    });
+    const currency = shopRecord?.currency || "USD";
 
     // 4. Fetch Public Products for this shop
     const publicProducts = await db
@@ -159,8 +153,8 @@ export async function GET(
             <div class="omni-card">
               <img src="${p.image || ''}" alt="${p.title}">
               <span class="omni-title">${p.title}</span>
-              <div class="omni-price">$${p.retailPrice || '0.00'}</div>
-              <a href="/products/${p.title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '')}" class="omni-btn">View Product</a>
+              <div class="omni-price">${currency} ${p.retailPrice || '0.00'}</div>
+              <a href="/products/${p.shopifyProductId}" class="omni-btn">View Product</a>
             </div>
           `).join('')}
         </div>

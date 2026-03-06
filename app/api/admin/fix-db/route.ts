@@ -3,7 +3,15 @@ import { db } from "@/lib/db";
 import { productExchange } from "@/lib/db/schema";
 import { sql } from "drizzle-orm";
 
-export async function GET() {
+export async function GET(request: Request) {
+    // Protect this destructive endpoint with an admin secret header
+    const adminSecret = process.env.ADMIN_SECRET;
+    const provided = request.headers.get("x-admin-secret");
+
+    if (!adminSecret || provided !== adminSecret) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     try {
         console.log("Starting Radical DB Fix/Cleanup...");
 
@@ -39,3 +47,4 @@ export async function GET() {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }
+

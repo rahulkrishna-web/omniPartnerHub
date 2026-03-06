@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Page,
   Layout,
@@ -9,7 +9,6 @@ import {
   useIndexResourceState,
   Text,
   Thumbnail,
-  FormLayout,
   TextField,
   Badge,
   Button,
@@ -21,37 +20,7 @@ import {
   Box,
   Link,
 } from "@shopify/polaris";
-
-// Helper to get session token safely
-async function getSessionToken() {
-  if (typeof window === "undefined") return null;
-
-  if (!window.shopify) {
-    await new Promise((resolve) => {
-      const interval = setInterval(() => {
-        if (window.shopify) {
-          clearInterval(interval);
-          resolve(true);
-        }
-      }, 100);
-      setTimeout(() => {
-        clearInterval(interval);
-        resolve(false);
-      }, 2000);
-    });
-  }
-
-  if (window.shopify) {
-    try {
-      if (window.shopify.idToken) {
-        return await window.shopify.idToken();
-      }
-    } catch (e) {
-      console.error("Failed to get session token:", e);
-    }
-  }
-  return null;
-}
+import { getSessionToken } from "../lib/session";
 
 export function ProductList() {
   const [products, setProducts] = useState<any[]>([]);
@@ -59,7 +28,11 @@ export function ProductList() {
   const [syncing, setSyncing] = useState(false);
   const [updatingIds, setUpdatingIds] = useState<number[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [shop, setShop] = useState<string>("");
+  const [shop, setShop] = useState<any>(null);
+  const currencySymbol = shop?.currency || "$";
+
+  // Debounce timers map keyed by productId+field
+  const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   const resourceName = {
     singular: "product",
@@ -69,15 +42,7 @@ export function ProductList() {
   const { selectedResources, allResourcesSelected, handleSelectionChange } =
     useIndexResourceState(products);
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const url = new URL(window.location.href);
-      const shopParam = url.searchParams.get("shop");
-      if (shopParam) setShop(shopParam);
-    }
-  }, []);
-
-  async function fetchProducts(silent = false) {
+  const fetchProducts = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     setError(null);
     try {
@@ -86,16 +51,17 @@ export function ProductList() {
       if (token) headers["Authorization"] = `Bearer ${token}`;
 
       const res = await fetch("/api/products", { headers });
-      if (!res.ok) throw new Error(`API Error: ${res.status}`);
-      
       const data = await res.json();
+      if (data.error) throw new Error(data.error);
       setProducts(data.products || []);
+      setShop(data.shop);
     } catch (err: any) {
-      if (!silent) setError(err.message || "Failed to load products");
+      console.error("Fetch products error:", err);
+      if (!silent) setError(err.message);
     } finally {
       if (!silent) setLoading(false);
     }
-  }
+  }, []);
 
   async function handleBulkUpdate(isPublic: boolean) {
     // Optimistic Update
@@ -180,7 +146,7 @@ export function ProductList() {
 
   useEffect(() => {
     fetchProducts();
-  }, []);
+  }, [fetchProducts]);
 
   const bulkActions = [
     {
@@ -193,37 +159,47 @@ export function ProductList() {
     },
   ];
 
-  async function updatePrice(productId: number, field: 'retailPrice' | 'wholesalePrice', value: string) {
-    const previousProducts = [...products];
-    const updatedProducts = products.map((p) => {
-      if (p.id === productId) {
-        return { ...p, exchange: { ...p.exchange, [field]: value } };
-      }
-      return p;
-    });
-    setProducts(updatedProducts);
+  /** Debounced: only calls API 500ms after user stops typing */
+  function updatePrice(productId: number, field: 'retailPrice' | 'wholesalePrice', value: string) {
+    // Optimistic update immediately
+    setProducts((prev) =>
+      prev.map((p) =>
+        p.id === productId
+          ? { ...p, exchange: { ...p.exchange, [field]: value } }
+          : p
+      )
+    );
 
-    try {
-      const token = await getSessionToken();
-      const product = updatedProducts.find(p => p.id === productId);
-      const res = await fetch("/api/products", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ 
-            productId, 
-            retailPrice: product?.exchange.retailPrice,
-            wholesalePrice: product?.exchange.wholesalePrice,
-            isPublic: product?.exchange.isPublic 
-        }),
-      });
-      if (!res.ok) throw new Error("Price update failed");
-    } catch (err: any) {
-      setError(err.message);
-      setProducts(previousProducts);
-    }
+    // Debounce the API call
+    const key = `${productId}-${field}`;
+    if (debounceTimers.current[key]) clearTimeout(debounceTimers.current[key]);
+
+    debounceTimers.current[key] = setTimeout(async () => {
+      try {
+        const token = await getSessionToken();
+        const product = products.find((p) => p.id === productId);
+        const updatedExchange = { ...product?.exchange, [field]: value };
+
+        const res = await fetch("/api/products", {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            productId,
+            retailPrice: updatedExchange.retailPrice,
+            wholesalePrice: updatedExchange.wholesalePrice,
+            isPublic: updatedExchange.isPublic
+          }),
+        });
+        if (!res.ok) throw new Error("Price update failed");
+      } catch (err: any) {
+        setError(err.message);
+        // Rollback on error
+        await fetchProducts(true);
+      }
+    }, 500);
   }
 
   const rowMarkup = products.map(
@@ -253,23 +229,17 @@ export function ProductList() {
           </IndexTable.Cell>
           <IndexTable.Cell>{vendor}</IndexTable.Cell>
           <IndexTable.Cell>
-            <TextField
-              label="Wholesale"
-              labelHidden
-              value={exchange?.wholesalePrice || "0.00"}
-              onChange={(val: string) => updatePrice(id, 'wholesalePrice', val)}
-              prefix="$"
-              autoComplete="off"
-            />
+            {currencySymbol}{exchange?.wholesalePrice || "0.00"}
           </IndexTable.Cell>
           <IndexTable.Cell>
             <TextField
               label="Retail"
               labelHidden
-              value={exchange?.retailPrice || "0.00"}
+              value={exchange?.retailPrice || ""}
               onChange={(val: string) => updatePrice(id, 'retailPrice', val)}
-              prefix="$"
+              prefix={currencySymbol}
               autoComplete="off"
+              placeholder="0.00"
             />
           </IndexTable.Cell>
           <IndexTable.Cell>

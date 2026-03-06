@@ -7,29 +7,24 @@ import { NextResponse } from "next/server";
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
-  // Session validation
-  // Session validation
   const authHeader = request.headers.get("Authorization");
-  console.log("Debug API: Auth Header Present?", !!authHeader);
 
   let sessionId;
   try {
-      sessionId = await shopify.session.getCurrentId({ isOnline: false, rawRequest: request });
-      console.log("Debug API: sessionId from getCurrentId:", sessionId);
+    sessionId = await shopify.session.getCurrentId({ isOnline: false, rawRequest: request });
   } catch (e) {
-      console.error("Debug API: getCurrentId failed:", e);
+    console.error("[Products] getCurrentId failed:", e);
   }
 
   if (!sessionId) {
-      if (authHeader) {
-          const token = authHeader.replace("Bearer ", "");
-          try {
-            const payload = await shopify.session.decodeSessionToken(token);
-            console.log("Debug API: Decoded Token Payload:", payload);
-          } catch(e) {
-            console.error("Debug API: Failed to decode token:", e);
-          }
+    if (authHeader) {
+      const token = authHeader.replace("Bearer ", "");
+      try {
+        await shopify.session.decodeSessionToken(token);
+      } catch (e) {
+        console.error("[Products] Failed to decode token:", e);
       }
+    }
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const session = await sessionStorage.loadSession(sessionId);
@@ -46,8 +41,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Shop not found in DB" }, { status: 404 });
   }
 
-  // Fetch Products with Exchange Data
-  // We perform a left join to retrieve product details + exchange settings
+  // Fetch Products with Exchange Data (left join to include products without exchange settings)
   const result = await db
     .select({
       id: products.id,
@@ -65,12 +59,16 @@ export async function GET(request: Request) {
     .leftJoin(productExchange, eq(products.id, productExchange.productId))
     .where(eq(products.shopId, shopRecord.id));
 
-  console.log(`Debug API: GET returning ${result.length} products`);
-  return NextResponse.json({ products: result });
+  return NextResponse.json({
+    products: result,
+    shop: {
+      currency: shopRecord.currency,
+      moneyFormat: shopRecord.moneyFormat
+    }
+  });
 }
 
 export async function PUT(request: Request) {
-  // Update Product Exchange Settings
   const sessionId = await shopify.session.getCurrentId({ isOnline: false, rawRequest: request });
   if (!sessionId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -80,17 +78,34 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: "Session not found" }, { status: 401 });
   }
 
+  // Get shop to verify ownership
+  const shopRecord = await db.query.shops.findFirst({
+    where: eq(shops.shop, session.shop),
+  });
+  if (!shopRecord) {
+    return NextResponse.json({ error: "Shop not found" }, { status: 404 });
+  }
+
   const payload = await request.json();
   const { productId, wholesalePrice, retailPrice, isPublic } = payload;
 
   if (!productId) {
-     return NextResponse.json({ error: "Missing productId" }, { status: 400 });
+    return NextResponse.json({ error: "Missing productId" }, { status: 400 });
   }
 
-  // Verify ownership? (check if product belongs to shop)
-  // For now skipping deep verification for speed, but ideally yes.
+  // Verify the product belongs to this shop
+  const productRecord = await db.query.products.findFirst({
+    where: and(
+      eq(products.id, Number(productId)),
+      eq(products.shopId, shopRecord.id)
+    ),
+  });
 
-  // Atomic Upsert into productExchange
+  if (!productRecord) {
+    return NextResponse.json({ error: "Product not found or access denied" }, { status: 403 });
+  }
+
+  // Atomic upsert into productExchange
   await db.insert(productExchange)
     .values({
       productId: Number(productId),
@@ -107,6 +122,5 @@ export async function PUT(request: Request) {
       }
     });
 
-  console.log(`Debug API: Updated product ${productId} isPublic to ${isPublic}`);
   return NextResponse.json({ success: true });
 }

@@ -15,9 +15,12 @@ export async function POST(request: Request) {
 
   const rawBody = await request.text();
 
-  // Basic verification (Optional: verify HMAC properly here if needed)
-  // const { valid } = await shopify.webhooks.validate({ rawBody, rawRequest: request });
-  // if (!valid) return NextResponse.json({ error: "Invalid HMAC" }, { status: 401 });
+  // Verify Shopify HMAC signature to ensure authenticity
+  const { valid } = await shopify.webhooks.validate({ rawBody, rawRequest: request });
+  if (!valid) {
+    console.error(`[Webhooks] Invalid HMAC for topic "${topic}" from shop "${shop}"`);
+    return NextResponse.json({ error: "Invalid webhook signature" }, { status: 401 });
+  }
 
   const payload = JSON.parse(rawBody);
 
@@ -26,7 +29,7 @@ export async function POST(request: Request) {
     const shopRecord = shopRecords[0];
 
     if (!shopRecord) {
-      console.error(`Shop not found: ${shop}`);
+      console.error(`[Webhooks] Shop not found: ${shop}`);
       return NextResponse.json({ error: "Shop not found" }, { status: 404 });
     }
 
@@ -39,12 +42,13 @@ export async function POST(request: Request) {
         await handleProductDelete(shopRecord.id, payload);
         break;
       default:
-        console.log(`Unhandled topic: ${topic}`);
+        console.warn(`[Webhooks] Unhandled topic received: ${topic}`);
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Webhook processing error:", error);
+    console.error("[Webhooks] Processing error:", error);
     return NextResponse.json({ error: "Processing failed" }, { status: 500 });
   }
 }
+

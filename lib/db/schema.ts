@@ -7,6 +7,8 @@ export const shops = pgTable("shops", {
   accessToken: text("access_token"), // Offline token
   scope: text("scope"),
   isInstalled: boolean("is_installed").default(false),
+  currency: text("currency").default("USD"),
+  moneyFormat: text("money_format").default("${{amount}}"),
   installedAt: timestamp("installed_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -35,6 +37,7 @@ export const partners = pgTable("partners", {
   handle: text("handle").unique(), // for boutique URL
   tier: text("tier").default("1"), // 1, 2, 3
   createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const products = pgTable("products", {

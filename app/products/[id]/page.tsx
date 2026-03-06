@@ -22,14 +22,7 @@ import {
 } from "@shopify/polaris";
 import { AppNavigation } from "../../components/app-navigation";
 
-// Helper to get session token safely
-async function getSessionToken() {
-  if (typeof window === "undefined") return null;
-  if (window.shopify && window.shopify.idToken) {
-    return await window.shopify.idToken();
-  }
-  return null;
-}
+import { getSessionToken } from "../../lib/session";
 
 export default function ProductDetailPage() {
   const params = useParams();
@@ -38,6 +31,7 @@ export default function ProductDetailPage() {
 
   const [product, setProduct] = useState<any>(null);
   const [storeDetails, setStoreDetails] = useState<any>(null);
+  const [shop, setShop] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -49,6 +43,9 @@ export default function ProductDetailPage() {
   const [commissionPercent, setCommissionPercent] = useState("");
   const [commissionFlat, setCommissionFlat] = useState("");
   const [isPublic, setIsPublic] = useState(false);
+
+  // Helper to get currency symbol (simple version)
+  const currencySymbol = shop?.currency || "$";
 
   const fetchProduct = useCallback(async () => {
     setLoading(true);
@@ -65,6 +62,7 @@ export default function ProductDetailPage() {
       const p = data.product;
       setProduct(p);
       setStoreDetails(data.storeDetails);
+      setShop(data.shop);
       
       setRetailPrice(p.exchange?.retailPrice || ""); // Keep empty if no override
       setWholesalePrice(p.exchange?.wholesalePrice || "0.00");
@@ -105,7 +103,7 @@ export default function ProductDetailPage() {
 
       if (!res.ok) throw new Error("Failed to save changes");
       setSuccess(true);
-      fetchProduct(); // Refresh data
+      await fetchProduct(); // Refresh data after save
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -178,12 +176,14 @@ export default function ProductDetailPage() {
                       <Text variant="headingMd" as="h2">Live Store Info</Text>
                       <BlockStack gap="200">
                         <InlineStack align="space-between">
-                          <Text variant="bodyMd" as="span">Store MSRP:</Text>
-                          <Text variant="bodyMd" fontWeight="bold" as="span">${storeDetails.price}</Text>
+                          <Text variant="bodyMd" as="span">Store MSRP ({shop?.currency}):</Text>
+                          <Text variant="bodyMd" fontWeight="bold" as="span">{currencySymbol}{storeDetails.price}</Text>
                         </InlineStack>
                         <InlineStack align="space-between">
                           <Text variant="bodyMd" as="span">Compare At:</Text>
-                          <Text variant="bodyMd" as="span">${storeDetails.compareAtPrice || "N/A"}</Text>
+                          <Text variant="bodyMd" as="span">
+                            {storeDetails.compareAtPrice ? `${currencySymbol}${storeDetails.compareAtPrice}` : "N/A"}
+                          </Text>
                         </InlineStack>
                         <Divider />
                         <InlineStack align="space-between">
@@ -202,23 +202,23 @@ export default function ProductDetailPage() {
           <Layout.Section>
             <Card>
               <BlockStack gap="400">
-                <Text variant="headingMd" as="h2">Exchange Settings</Text>
+                <Text variant="headingMd" as="h2">Exchange Settings ({shop?.currency})</Text>
                 <FormLayout>
                   <FormLayout.Group>
                     <TextField
-                      label="Retail Price (Override)"
+                      label={`Retail Price Override (${currencySymbol})`}
                       value={retailPrice}
                       onChange={setRetailPrice}
-                      prefix="$"
+                      prefix={currencySymbol}
                       placeholder={storeDetails?.price || "0.00"}
                       autoComplete="off"
-                      helpText={retailPrice ? "This price overrides the store MSRP in boutiques." : `Currently using store MSRP: $${storeDetails?.price || "0.00"}`}
+                      helpText={retailPrice ? `This price overrides the store MSRP in boutiques.` : `Currently using store MSRP: ${currencySymbol}${storeDetails?.price || "0.00"}`}
                     />
                     <TextField
-                      label="Wholesale Price"
+                      label={`Wholesale Price (${currencySymbol})`}
                       value={wholesalePrice}
                       onChange={setWholesalePrice}
-                      prefix="$"
+                      prefix={currencySymbol}
                       autoComplete="off"
                       helpText="The price you receive from the retailer/partner."
                     />
@@ -238,10 +238,10 @@ export default function ProductDetailPage() {
                       helpText="Percent paid to the partner on each sale."
                     />
                     <TextField
-                      label="Flat Commission"
+                      label={`Flat Commission (${currencySymbol})`}
                       value={commissionFlat}
                       onChange={setCommissionFlat}
-                      prefix="$"
+                      prefix={currencySymbol}
                       autoComplete="off"
                       helpText="Fixed amount paid to the partner per sale."
                     />

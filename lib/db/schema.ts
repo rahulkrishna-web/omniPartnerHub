@@ -75,3 +75,47 @@ export const productExchange = pgTable("product_exchange", {
 export const productExchangeRelations = relations(productExchange, ({ one }) => ({
 	product: one(products, { fields: [productExchange.productId], references: [products.id] }),
 }));
+
+// Hub Connections: tracks which retailer is reselling which supplier product
+export const hubConnections = pgTable("hub_connections", {
+  id: serial("id").primaryKey(),
+  supplierProductId: integer("supplier_product_id").references(() => products.id).notNull(),
+  retailerShopId: integer("retailer_shop_id").references(() => shops.id).notNull(),
+  // Product created in retailer's Shopify store
+  retailerShopifyProductId: text("retailer_shopify_product_id"),
+  retailerShopifyVariantId: text("retailer_shopify_variant_id"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const hubConnectionsRelations = relations(hubConnections, ({ one, many }) => ({
+  supplierProduct: one(products, { fields: [hubConnections.supplierProductId], references: [products.id] }),
+  retailerShop: one(shops, { fields: [hubConnections.retailerShopId], references: [shops.id] }),
+  orders: many(hubOrders),
+}));
+
+// Hub Orders: maps retailer orders to supplier orders (the fulfillment bridge)
+export const hubOrders = pgTable("hub_orders", {
+  id: serial("id").primaryKey(),
+  hubConnectionId: integer("hub_connection_id").references(() => hubConnections.id).notNull(),
+  retailerShopId: integer("retailer_shop_id").references(() => shops.id).notNull(),
+  retailerOrderId: text("retailer_order_id").notNull(),    // Shopify order ID on retailer side
+  retailerOrderName: text("retailer_order_name"),           // e.g. "#1234"
+  retailerLineItemId: text("retailer_line_item_id"),
+  supplierShopId: integer("supplier_shop_id").references(() => shops.id).notNull(),
+  supplierDraftOrderId: text("supplier_draft_order_id"),    // Draft order on supplier side
+  supplierOrderId: text("supplier_order_id"),               // Completed order on supplier side
+  // Fulfillment tracking (populated when supplier ships)
+  status: text("status").default("pending"),                // pending | ordered | fulfilled | cancelled
+  trackingNumber: text("tracking_number"),
+  trackingUrl: text("tracking_url"),
+  trackingCompany: text("tracking_company"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const hubOrdersRelations = relations(hubOrders, ({ one }) => ({
+  connection: one(hubConnections, { fields: [hubOrders.hubConnectionId], references: [hubConnections.id] }),
+  retailerShop: one(shops, { fields: [hubOrders.retailerShopId], references: [shops.id] }),
+  supplierShop: one(shops, { fields: [hubOrders.supplierShopId], references: [shops.id] }),
+}));

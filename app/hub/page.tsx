@@ -3,42 +3,43 @@
 import { useEffect, useState, useCallback } from "react";
 import { AppNavigation } from "../components/app-navigation";
 import { HubProductCard } from "../components/hub-product-card";
-import { 
-  Page, 
-  Layout, 
-  Card, 
-  Text, 
-  EmptyState, 
-  Frame, 
-  BlockStack, 
-  Spinner, 
+import {
+  Page,
+  Layout,
+  Card,
+  Text,
+  EmptyState,
+  Spinner,
   Banner,
-  Layout as PolarisLayout
+  Box,
+  InlineStack,
 } from "@shopify/polaris";
-import { getSessionToken } from "@shopify/app-bridge-utils";
 
 export default function ProductHubPage() {
   const [products, setProducts] = useState<any[]>([]);
+  const [connections, setConnections] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  const fetchHubProducts = useCallback(async () => {
+  const fetchAll = useCallback(async () => {
     try {
       setLoading(true);
       const token = await window.shopify.idToken();
-      
-      const response = await fetch("/api/hub/products", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const headers = { Authorization: `Bearer ${token}` };
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch products");
-      }
+      const [productsRes, connectionsRes] = await Promise.all([
+        fetch("/api/hub/products", { headers }),
+        fetch("/api/hub/add-to-store", { headers }),
+      ]);
 
-      const data = await response.json();
-      setProducts(data.products || []);
+      const productsData = await productsRes.json();
+      const connectionsData = await connectionsRes.json();
+
+      if (productsData.error) throw new Error(productsData.error);
+
+      setProducts(productsData.products || []);
+      setConnections(connectionsData.connections || []);
     } catch (err: any) {
       console.error("Hub fetch error:", err);
       setError(err.message);
@@ -47,24 +48,56 @@ export default function ProductHubPage() {
     }
   }, []);
 
-  useEffect(() => {
-    fetchHubProducts();
-  }, [fetchHubProducts]);
+  const handleAddToStore = async (supplierProductId: number) => {
+    try {
+      const token = await window.shopify.idToken();
+      const res = await fetch("/api/hub/add-to-store", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ supplierProductId }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
 
-  const handleGenerateLink = (productId: number) => {
-    console.log("Generate link for product:", productId);
-    // Placeholder for Phase 3 affiliate logic
-    alert(`Link generation for product ${productId} coming soon in Phase 3!`);
+      setSuccessMsg(
+        data.alreadyAdded
+          ? "Product already in your store."
+          : "Product added to your store! Publish it from Shopify Admin when ready."
+      );
+
+      // Refresh connections to update badge state
+      const token2 = await window.shopify.idToken();
+      const connectionsRes = await fetch("/api/hub/add-to-store", {
+        headers: { Authorization: `Bearer ${token2}` },
+      });
+      const connectionsData = await connectionsRes.json();
+      setConnections(connectionsData.connections || []);
+    } catch (err: any) {
+      setError(err.message);
+      throw err; // Re-throw so the card button loading state resets
+    }
   };
+
+  const isProductConnected = (productId: number) =>
+    connections.some((c: any) => c.supplierProductId === productId);
+
+  useEffect(() => {
+    fetchAll();
+  }, [fetchAll]);
 
   if (loading) {
     return (
       <>
         <AppNavigation />
         <Page>
-          <div style={{ display: "flex", justifyContent: "center", marginTop: "100px" }}>
-            <Spinner size="large" />
-          </div>
+          <Box padding="800">
+            <InlineStack align="center">
+              <Spinner size="large" />
+            </InlineStack>
+          </Box>
         </Page>
       </>
     );
@@ -73,33 +106,49 @@ export default function ProductHubPage() {
   return (
     <>
       <AppNavigation />
-      <Page title="Product Hub" subtitle="Browse and promote products from our network of suppliers.">
+      <Page
+        title="Product Hub"
+        subtitle="Add products from our supplier network directly to your store."
+        secondaryActions={[{ content: "My Hub Orders", url: "/hub/orders" }]}
+      >
         <Layout>
           {error && (
             <Layout.Section>
-              <Banner tone="critical">
+              <Banner tone="critical" onDismiss={() => setError(null)}>
                 <p>{error}</p>
               </Banner>
             </Layout.Section>
           )}
+          {successMsg && (
+            <Layout.Section>
+              <Banner tone="success" onDismiss={() => setSuccessMsg(null)}>
+                <p>{successMsg}</p>
+              </Banner>
+            </Layout.Section>
+          )}
 
-          {products.length === 0 && !loading && !error ? (
+          {products.length === 0 ? (
             <Layout.Section>
               <Card>
                 <EmptyState
                   heading="No public products available"
                   image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
                 >
-                  <p>Wait for suppliers to mark their products as public to see them here.</p>
+                  <p>Suppliers need to mark their products as public for them to appear here.</p>
                 </EmptyState>
               </Card>
             </Layout.Section>
           ) : (
             products.map((product) => (
               <Layout.Section variant="oneThird" key={product.id}>
-                <HubProductCard 
-                  product={product} 
-                  onGenerateLink={handleGenerateLink} 
+                <HubProductCard
+                  product={product}
+                  isConnected={isProductConnected(product.id)}
+                  onAddToStore={handleAddToStore}
+                  onGenerateLink={(id) => {
+                    // Placeholder for affiliate link logic
+                    alert(`Affiliate link for product ${id} coming soon!`);
+                  }}
                 />
               </Layout.Section>
             ))

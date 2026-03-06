@@ -6,8 +6,22 @@ handle = "omnipartner-hub"
 application_url = "https://omni-partner-hub.vercel.app"
 embedded = true
 
+[access_scopes]
+# Products: read/write for hub sync and add-to-store
+# Orders: write to create supplier draft orders and fulfill retailer orders
+# Fulfillments: read/write to track and push tracking numbers
+scopes = "read_products,write_products,read_orders,write_orders,read_fulfillments,write_fulfillments"
+
 [webhooks]
 api_version = "2024-04"
+
+  [[webhooks.subscriptions]]
+  topics = ["orders/paid"]
+  uri = "/api/webhooks"
+
+  [[webhooks.subscriptions]]
+  topics = ["fulfillments/create"]
+  uri = "/api/webhooks"
 
 [auth]
 redirect_urls = [

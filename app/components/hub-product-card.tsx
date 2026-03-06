@@ -35,10 +35,13 @@ interface HubProduct {
 interface HubProductCardProps {
   product: HubProduct;
   onGenerateLink: (productId: number) => void;
+  isConnected?: boolean;
+  onAddToStore: (productId: number) => Promise<void>;
 }
 
-export function HubProductCard({ product, onGenerateLink }: HubProductCardProps) {
+export function HubProductCard({ product, onGenerateLink, isConnected = false, onAddToStore }: HubProductCardProps) {
   const [detailOpen, setDetailOpen] = useState(false);
+  const [adding, setAdding] = useState(false);
 
   const currency = product.supplierCurrency || "USD";
   const symbol = getCurrencySymbol(currency);
@@ -85,11 +88,12 @@ export function HubProductCard({ product, onGenerateLink }: HubProductCardProps)
             <Text variant="bodySm" tone="subdued" as="p">
               by {product.vendor || supplierName}
             </Text>
-            {/* Supplier Store Badge */}
-            <InlineStack gap="100" blockAlign="center">
-              <Text variant="bodyXs" tone="subdued" as="span">Sold by:</Text>
-              <Badge tone="info">{supplierName}</Badge>
-            </InlineStack>
+            {/* Supplier Store + Connection Status */}
+          <InlineStack gap="100" blockAlign="center">
+            <Text variant="bodyXs" tone="subdued" as="span">Sold by:</Text>
+            <Badge tone="info">{supplierName}</Badge>
+            {isConnected && <Badge tone="success">Added ✓</Badge>}
+          </InlineStack>
           </BlockStack>
 
           {/* Price + Commission */}
@@ -114,14 +118,23 @@ export function HubProductCard({ product, onGenerateLink }: HubProductCardProps)
             >
               Details
             </Button>
-            <Button
-              icon={LinkIcon}
-              onClick={() => onGenerateLink(product.id)}
-              variant="primary"
-              size="slim"
-            >
-              Generate Link
-            </Button>
+            {isConnected ? (
+              <Button variant="secondary" size="slim" disabled>
+                Added to Store ✓
+              </Button>
+            ) : (
+              <Button
+                variant="primary"
+                size="slim"
+                loading={adding}
+                onClick={async () => {
+                  setAdding(true);
+                  try { await onAddToStore(product.id); } finally { setAdding(false); }
+                }}
+              >
+                Add to My Store
+              </Button>
+            )}
           </InlineStack>
         </BlockStack>
       </Card>

@@ -26,13 +26,15 @@ function verifyHmac(url: URL) {
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
+  console.log(`Debug Proxy: Request received for ${url.pathname}${url.search}`);
 
   // 1. Verify Signature
   if (!verifyHmac(url)) {
+    console.warn("Debug Proxy: HMAC verification failed");
     return new Response("Unauthorized", { status: 401 });
   }
 
-  // 2. Resolve Partner from subpath (expected format: /apps/omni/b/[handle])
+  // 2. Resolve Partner from path (e.g. /api/proxy/b/[handle])
   // Shopify proxies to the url we specified in toml. 
   // If the user goes to /apps/omni/b/test, Shopify calls our proxy URL with extra path info?
   // Actually, Shopify app proxy works by appending the subpath to our URL.
@@ -40,12 +42,18 @@ export async function GET(request: Request) {
   // Let's check the path.
   
   const path = url.pathname; // This will be /api/proxy/b/handle or similar
+  console.log(`Debug Proxy: Parsing path ${path}`);
+
+  // Look for /b/ followed by the handle
   const handleMatch = path.match(/\/b\/([^/]+)/);
   const handle = handleMatch ? handleMatch[1] : null;
 
   if (!handle) {
+    console.error(`Debug Proxy: Could not find handle in path ${path}`);
     return new Response("Partner not found", { status: 404 });
   }
+
+  console.log(`Debug Proxy: Resolved handle: ${handle}`);
 
   try {
     // 3. Find Partner & Shop
@@ -53,8 +61,8 @@ export async function GET(request: Request) {
         where: eq(partners.handle, handle)
     });
 
-    if (!partner) {
-        return new Response("Boutique Not Found", { status: 404 });
+    if (!partner || !partner.shopId) {
+        return new Response("Boutique Not Found or Inactive", { status: 404 });
     }
 
     // 4. Fetch Public Products for this shop
@@ -71,7 +79,7 @@ export async function GET(request: Request) {
         .innerJoin(productExchange, eq(products.id, productExchange.productId))
         .where(
             and(
-                eq(products.shopId, partner.shopId),
+                eq(products.shopId, partner.shopId as number),
                 eq(productExchange.isPublic, true)
             )
         );

@@ -65,6 +65,7 @@ export async function GET(request: Request) {
     .leftJoin(productExchange, eq(products.id, productExchange.productId))
     .where(eq(products.shopId, shopRecord.id));
 
+  console.log(`Debug API: GET returning ${result.length} products`);
   return NextResponse.json({ products: result });
 }
 
@@ -110,5 +111,6 @@ export async function PUT(request: Request) {
     });
   }
 
+  console.log(`Debug API: Updated product ${productId} isPublic to ${isPublic}`);
   return NextResponse.json({ success: true });
 }

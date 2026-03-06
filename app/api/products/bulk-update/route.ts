@@ -40,6 +40,7 @@ export async function POST(request: Request) {
       }
     }
 
+    console.log(`Debug API: Bulk updated ${productIds.length} products to isPublic: ${isPublic}`);
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Bulk update error:", error);

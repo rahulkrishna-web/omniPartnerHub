@@ -24,7 +24,7 @@ export const sessions = pgTable("sessions", {
 // Start defining Partner tables for future phases
 export const partners = pgTable("partners", {
   id: serial("id").primaryKey(),
-  shopId: serial("shop_id").references(() => shops.id), // Link to the shop if they have one
+  shopId: integer("shop_id").references(() => shops.id), // Link to the shop if they have one
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
   handle: text("handle").unique(), // for boutique URL
@@ -34,7 +34,7 @@ export const partners = pgTable("partners", {
 
 export const products = pgTable("products", {
   id: serial("id").primaryKey(),
-  shopId: serial("shop_id").references(() => shops.id),
+  shopId: integer("shop_id").references(() => shops.id),
   shopifyProductId: text("shopify_product_id").notNull(),
   title: text("title").notNull(),
   image: text("image"),

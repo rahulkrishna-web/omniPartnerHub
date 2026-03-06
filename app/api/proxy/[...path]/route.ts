@@ -31,29 +31,33 @@ export async function GET(request: Request) {
   // 1. Verify Signature
   if (!verifyHmac(url)) {
     console.warn("Debug Proxy: HMAC verification failed");
-    return new Response("Unauthorized", { status: 401 });
+    console.warn("[Proxy Diagnostic] HMAC verification failed");
+    return new Response("Unauthorized Signature", { status: 401 });
   }
 
-  // 2. Resolve Partner from path (e.g. /api/proxy/b/[handle])
-  // Shopify proxies to the url we specified in toml. 
-  // If the user goes to /apps/omni/b/test, Shopify calls our proxy URL with extra path info?
-  // Actually, Shopify app proxy works by appending the subpath to our URL.
-  // Our subpath is "omni". If user hits /apps/omni/b/handle, Shopify hits our proxy_url + /b/handle ?
-  // Let's check the path.
+  // 2. Resolve Partner
+  const path = url.pathname;
   
-  const path = url.pathname; // This will be /api/proxy/b/handle or similar
-  console.log(`Debug Proxy: Parsing path ${path}`);
+  // Try regex match for /store/handle
+  let handleMatch = path.match(/\/store\/([^/]+)/);
+  
+  // Fallback: If Shopify strips parts of the path, try to find the handle at the end
+  if (!handleMatch) {
+    const segments = path.split("/").filter(Boolean);
+    // If we have a path like /api/proxy/rahul
+    if (segments.length >= 3 && segments[segments.length - 2] === "store") {
+       handleMatch = [null, segments[segments.length - 1]] as any;
+    }
+  }
 
-  // Look for /store/ followed by the handle
-  const handleMatch = path.match(/\/store\/([^/]+)/);
   const handle = handleMatch ? handleMatch[1] : null;
 
   if (!handle) {
-    console.error(`Debug Proxy: Could not find handle in path ${path}`);
-    return new Response("Partner not found", { status: 404 });
+    console.error(`[Proxy Diagnostic] 404 - Could not resolve handle from path: ${path}`);
+    return new Response(`Partner Handle Not Found (Path: ${path})`, { status: 404 });
   }
 
-  console.log(`Debug Proxy: Resolved handle: ${handle}`);
+  console.log(`[Proxy Diagnostic] Success - Resolved handle: ${handle}`);
 
   try {
     // 3. Find Partner & Shop

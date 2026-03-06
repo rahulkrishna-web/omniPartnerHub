@@ -105,14 +105,11 @@ export default function PartnersPage() {
         position={index}
       >
         <IndexTable.Cell>
-          <Link
-            url={`/partners/${id}`}
-            data-primary-link
-          >
+          <Button variant="plain" url={`/partners/${id}`} textAlign="start">
             <Text variant="bodyMd" fontWeight="bold" as="span">
               {name}
             </Text>
-          </Link>
+          </Button>
         </IndexTable.Cell>
         <IndexTable.Cell>{email}</IndexTable.Cell>
         <IndexTable.Cell>

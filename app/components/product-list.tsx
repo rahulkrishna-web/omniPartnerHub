@@ -20,7 +20,8 @@ import {
   Box,
   Link,
 } from "@shopify/polaris";
-import { getSessionToken } from "../lib/session";
+import { getSessionToken, triggerAuthRedirect } from "../lib/session";
+
 import { getCurrencySymbol } from "../lib/currency";
 
 export function ProductList() {
@@ -52,6 +53,13 @@ export function ProductList() {
       if (token) headers["Authorization"] = `Bearer ${token}`;
 
       const res = await fetch("/api/products", { headers });
+
+      // 401 = OAuth never completed for this store — trigger the auth flow
+      if (res.status === 401) {
+        await triggerAuthRedirect();
+        return;
+      }
+
       const data = await res.json();
       if (data.error) throw new Error(data.error);
       setProducts(data.products || []);
@@ -63,6 +71,7 @@ export function ProductList() {
       if (!silent) setLoading(false);
     }
   }, []);
+
 
   async function handleBulkUpdate(isPublic: boolean) {
     // Optimistic Update
@@ -137,6 +146,10 @@ export function ProductList() {
           Authorization: `Bearer ${token}`,
         },
       });
+      if (res.status === 401) {
+        await triggerAuthRedirect();
+        return;
+      }
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || `Sync failed (${res.status})`);

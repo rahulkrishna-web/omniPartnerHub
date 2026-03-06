@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { AppNavigation } from "../components/app-navigation";
 import { HubProductCard } from "../components/hub-product-card";
+import { triggerAuthRedirect } from "../lib/session";
 import {
   Page,
   Layout,
@@ -44,6 +45,12 @@ export default function ProductHubPage() {
         fetch("/api/hub/products", { headers }),
         fetch("/api/hub/add-to-store", { headers }),
       ]);
+
+      // 401 = OAuth never completed for this store — trigger the auth flow
+      if (productsRes.status === 401) {
+        await triggerAuthRedirect();
+        return;
+      }
 
       const productsData = await productsRes.json();
       const connectionsData = await connectionsRes.json();

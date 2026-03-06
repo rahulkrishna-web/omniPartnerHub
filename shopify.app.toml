@@ -17,3 +17,8 @@ redirect_urls = [
 
 [pos]
 embedded = false
+
+[app_proxy]
+url = "https://omni-partner-hub.vercel.app/api/proxy"
+subpath = "omni"
+prefix = "apps"

@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp, boolean, integer, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, boolean, integer, uniqueIndex, unique } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
 export const shops = pgTable("shops", {
@@ -89,6 +89,10 @@ export const hubConnections = pgTable("hub_connections", {
   retailerShopifyVariantId: text("retailer_shopify_variant_id"),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
+}, (table) => {
+  return {
+    uniqueConnection: unique("unique_connection_idx").on(table.supplierProductId, table.retailerShopId),
+  };
 });
 
 export const hubConnectionsRelations = relations(hubConnections, ({ one, many }) => ({

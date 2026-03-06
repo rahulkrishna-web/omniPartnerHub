@@ -8,6 +8,13 @@
       "when": 1772826351766,
       "tag": "0000_lazy_gladiator",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1772833857116,
+      "tag": "0001_hesitant_abomination",
+      "breakpoints": true
     }
   ]
 }

@@ -136,10 +136,22 @@ export async function handleProductUpdate(shopId: number, product: any) {
 export async function handleProductDelete(shopId: number, payload: any) {
   const shopifyProductId = String(payload.id);
 
+  // 1. If the supplier deletes their original product, remove it from the Hub
   await db.delete(products).where(
     and(
       eq(products.shopId, shopId),
       eq(products.shopifyProductId, shopifyProductId)
     )
   );
+
+  // 2. If a retailer deletes a cloned product from their store, mark the connection inactive
+  // so they can add it again in the future if they want.
+  await db.update(hubConnections)
+    .set({ isActive: false })
+    .where(
+      and(
+        eq(hubConnections.retailerShopId, shopId),
+        eq(hubConnections.retailerShopifyProductId, shopifyProductId)
+      )
+    );
 }

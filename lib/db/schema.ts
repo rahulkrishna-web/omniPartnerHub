@@ -44,7 +44,7 @@ export const products = pgTable("products", {
 
 export const productExchange = pgTable("product_exchange", {
   id: serial("id").primaryKey(),
-  productId: integer("product_id").references(() => products.id),
+  productId: integer("product_id").references(() => products.id).unique(),
   wholesalePrice: text("wholesale_price"), // stored as string (decimal)
   retailPrice: text("retail_price"),
   isPublic: boolean("is_public").default(false),

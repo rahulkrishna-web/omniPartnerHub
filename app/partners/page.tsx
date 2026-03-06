@@ -5,7 +5,8 @@ import { Page, Layout, Card, EmptyState, Frame } from "@shopify/polaris";
 
 export default function PartnersPage() {
   return (
-    <Frame navigation={<AppNavigation />}>
+    <>
+      <AppNavigation />
       <Page>
         <Layout>
           <Layout.Section>
@@ -21,6 +22,6 @@ export default function PartnersPage() {
           </Layout.Section>
         </Layout>
       </Page>
-    </Frame>
+    </>
   );
 }

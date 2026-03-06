@@ -6,10 +6,11 @@ import { Page, Frame } from "@shopify/polaris";
 
 export default function ProductsPage() {
   return (
-    <Frame navigation={<AppNavigation />}>
+    <>
+      <AppNavigation />
       <Page>
         <ProductList />
       </Page>
-    </Frame>
+    </>
   );
 }

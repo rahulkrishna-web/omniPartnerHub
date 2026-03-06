@@ -5,7 +5,8 @@ import { Page, Layout, Card, EmptyState, Frame } from "@shopify/polaris";
 
 export default function ProductHubPage() {
   return (
-    <Frame navigation={<AppNavigation />}>
+    <>
+      <AppNavigation />
       <Page>
         <Layout>
           <Layout.Section>
@@ -20,6 +21,6 @@ export default function ProductHubPage() {
           </Layout.Section>
         </Layout>
       </Page>
-    </Frame>
+    </>
   );
 }

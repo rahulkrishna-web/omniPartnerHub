@@ -5,7 +5,8 @@ import { Page, Layout, Card, Text, InlineStack, BlockStack, Frame } from "@shopi
 
 export default function DashboardPage() {
   return (
-    <Frame navigation={<AppNavigation />}>
+    <>
+      <AppNavigation />
       <Page>
         <Layout>
           <Layout.Section>
@@ -47,6 +48,6 @@ export default function DashboardPage() {
           </Layout.Section>
         </Layout>
       </Page>
-    </Frame>
+    </>
   );
 }

@@ -5,7 +5,8 @@ import { Page, Layout, Card, Text, BlockStack, Frame } from "@shopify/polaris";
 
 export default function SettingsPage() {
   return (
-    <Frame navigation={<AppNavigation />}>
+    <>
+      <AppNavigation />
       <Page>
         <Layout>
           <Layout.Section>
@@ -34,6 +35,6 @@ export default function SettingsPage() {
           </Layout.Section>
         </Layout>
       </Page>
-    </Frame>
+    </>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo } from "react";
-import { AppNavigation } from "../components/app-navigation";
+import { AdminLayout } from "../components/AdminLayout";
 import { HubProductCard } from "../components/hub-product-card";
 import { triggerAuthRedirect } from "../lib/session";
 import {
@@ -35,15 +35,18 @@ export default function ProductHubPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [vendorFilter, setVendorFilter] = useState("all");
 
+  const [partnerHandle, setPartnerHandle] = useState<string | null>(null);
+
   const fetchAll = useCallback(async () => {
     try {
       setLoading(true);
       const token = await window.shopify.idToken();
       const headers = { Authorization: `Bearer ${token}` };
 
-      const [productsRes, connectionsRes] = await Promise.all([
+      const [productsRes, connectionsRes, statsRes] = await Promise.all([
         fetch("/api/hub/products", { headers }),
         fetch("/api/hub/add-to-store", { headers }),
+        fetch("/api/dashboard-stats", { headers }),
       ]);
 
       // 401 = OAuth never completed for this store — trigger the auth flow
@@ -54,12 +57,21 @@ export default function ProductHubPage() {
 
       const productsData = await productsRes.json();
       const connectionsData = await connectionsRes.json();
+      const statsData = await statsRes.json();
 
       if (productsData.error) throw new Error(productsData.error);
 
       setProducts(productsData.products || []);
       setCurrentShopId(productsData.currentShopId ?? null);
       setConnections(connectionsData.connections || []);
+
+      // If this shop is registered as a partner in our partners table, find its handle
+      // For MVP, we'll assume the shop might have a partner record
+      const partnersRes = await fetch("/api/partners", { headers });
+      const partnersData = await partnersRes.json();
+      // Look for a partner record that might belong to this shop or just use a placeholder
+      // For now, let's just use the shop domain as a fallback handle
+      setPartnerHandle(statsData.shop || "");
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -131,9 +143,7 @@ export default function ProductHubPage() {
 
   if (loading) {
     return (
-      <>
-        <AppNavigation />
-        <Page>
+      <AdminLayout title="Product Hub">
           <Box padding="1600">
             <InlineStack align="center">
               <BlockStack gap="400" align="center">
@@ -142,18 +152,15 @@ export default function ProductHubPage() {
               </BlockStack>
             </InlineStack>
           </Box>
-        </Page>
-      </>
+      </AdminLayout>
     );
   }
 
   return (
-    <>
-      <AppNavigation />
-      <Page
-        title="Product Hub"
-        subtitle="Browse and add products from our supplier network to your store."
-      >
+    <AdminLayout 
+      title="Product Hub"
+      subtitle="Browse and add products from our supplier network to your store."
+    >
         <Layout>
           {/* Banners */}
           {error && (
@@ -268,9 +275,8 @@ export default function ProductHubPage() {
                       isConnected={isProductConnected(product.id)}
                       isOwnProduct={currentShopId !== null && product.supplierShopId === currentShopId}
                       onAddToStore={handleAddToStore}
-                      onGenerateLink={(id) => {
-                        alert(`Affiliate link for product ${id} coming soon!`);
-                      }}
+                      ownShop={currentShopId ? products.find(p => p.supplierShopId === currentShopId)?.supplierShop : undefined}
+                      partnerHandle={partnerHandle || undefined}
                     />
                   </Layout.Section>
                 ))
@@ -278,7 +284,6 @@ export default function ProductHubPage() {
             </>
           )}
         </Layout>
-      </Page>
-    </>
+    </AdminLayout>
   );
 }

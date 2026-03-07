@@ -15,8 +15,8 @@ export async function GET(request: Request) {
     const { session } = callbackResponse;
 
     // Store session FIRST — this must succeed before anything else
-    if (shopify.config.sessionStorage) {
-      await shopify.config.sessionStorage.storeSession(session);
+    if (sessionStorage) {
+      await sessionStorage.storeSession(session);
     }
 
     // ─── SHOP UPSERT — must happen before any other DB operations ───────────
@@ -65,6 +65,26 @@ export async function GET(request: Request) {
       await shopify.webhooks.register({ session });
     } catch (e) {
       console.error("[Auth] Webhook registration failed (non-fatal):", e);
+    }
+
+    // ─── BILLING CHECK ───
+    try {
+      const hasPayment = await shopify.billing.check({
+        session,
+        plans: ["Standard Plan"],
+        isTest: true, // Set to false for production
+      });
+
+      if (!hasPayment) {
+        const confirmationUrl = await shopify.billing.request({
+          session,
+          plan: "Standard Plan",
+          isTest: true,
+        });
+        return NextResponse.redirect(confirmationUrl);
+      }
+    } catch (e) {
+      console.error("[Auth] Billing check failed:", e);
     }
 
     // Redirect to embedded app

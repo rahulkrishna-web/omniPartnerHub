@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { AppNavigation } from "../components/app-navigation";
+import { AdminLayout } from "../components/AdminLayout";
 import {
   Page,
   Layout,
@@ -133,15 +133,13 @@ export default function PartnersPage() {
   });
 
   return (
-    <>
-      <AppNavigation />
-      <Page
-        title="Partners"
-        primaryAction={{
-          content: "Add Partner",
-          onAction: () => setIsModalOpen(true),
-        }}
-      >
+    <AdminLayout
+      title="Partners"
+      primaryAction={{
+        content: "Add Partner",
+        onAction: () => setIsModalOpen(true),
+      }}
+    >
         <Layout>
           {error && (
             <Layout.Section>
@@ -234,7 +232,6 @@ export default function PartnersPage() {
             </FormLayout>
           </Modal.Section>
         </Modal>
-      </Page>
-    </>
+    </AdminLayout>
   );
 }

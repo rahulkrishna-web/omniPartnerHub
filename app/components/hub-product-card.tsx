@@ -34,13 +34,21 @@ interface HubProduct {
 
 interface HubProductCardProps {
   product: HubProduct;
-  onGenerateLink: (productId: number) => void;
   isConnected?: boolean;
   isOwnProduct?: boolean;
   onAddToStore: (productId: number) => Promise<void>;
+  ownShop?: string;
+  partnerHandle?: string;
 }
 
-export function HubProductCard({ product, onGenerateLink, isConnected = false, isOwnProduct = false, onAddToStore }: HubProductCardProps) {
+export function HubProductCard({ 
+  product, 
+  isConnected = false, 
+  isOwnProduct = false, 
+  onAddToStore,
+  ownShop,
+  partnerHandle 
+}: HubProductCardProps) {
   const [detailOpen, setDetailOpen] = useState(false);
   const [adding, setAdding] = useState(false);
 
@@ -161,9 +169,13 @@ export function HubProductCard({ product, onGenerateLink, isConnected = false, i
         onClose={() => setDetailOpen(false)}
         title={product.title}
         primaryAction={{
-          content: "Generate Affiliate Link",
+          content: "Copy Affiliate Link",
           onAction: () => {
-            onGenerateLink(product.id);
+            const handle = partnerHandle || ownShop || "partner";
+            // Link to the Boutique store hosted on the supplier's shop
+            const link = `https://${product.supplierShop}/apps/omnipartner-hub/store/${handle}?product_id=${product.shopifyProductId}`;
+            navigator.clipboard.writeText(link);
+            alert(`Link copied to clipboard!\n${link}`);
             setDetailOpen(false);
           },
         }}

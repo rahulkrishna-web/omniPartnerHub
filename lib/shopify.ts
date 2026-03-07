@@ -1,5 +1,5 @@
 import "@shopify/shopify-api/adapters/web-api";
-import { shopifyApi, ApiVersion } from "@shopify/shopify-api";
+import { shopifyApi, ApiVersion, BillingInterval } from "@shopify/shopify-api";
 import { DrizzleSessionStorage } from "./session-storage";
 
 // Ensure process.env is loaded or checked
@@ -16,6 +16,14 @@ export const shopify = shopifyApi({
   hostName: process.env.SHOPIFY_APP_URL ? process.env.SHOPIFY_APP_URL.replace(/https:\/\//, "") : "localhost",
   apiVersion: ApiVersion.April24,
   isEmbeddedApp: true,
+  billing: {
+    "Standard Plan": {
+      amount: 19.99,
+      currencyCode: "USD",
+      // @ts-ignore
+      interval: BillingInterval.Every30Days,
+    },
+  },
   webhooks: {
     path: "/api/webhooks",
   },

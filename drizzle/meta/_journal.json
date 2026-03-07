@@ -29,6 +29,20 @@
       "when": 1772835677248,
       "tag": "0003_tranquil_leopardon",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1772883160766,
+      "tag": "0004_smooth_sabretooth",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1772884060947,
+      "tag": "0005_slimy_wallow",
+      "breakpoints": true
     }
   ]
 }

@@ -7,6 +7,7 @@ export const shops = pgTable("shops", {
   accessToken: text("access_token"), // Offline token
   scope: text("scope"),
   isInstalled: boolean("is_installed").default(false),
+  role: text("role").default("supplier"), // supplier | partner
   currency: text("currency").default("USD"),
   moneyFormat: text("money_format").default("${{amount}}"),
   installedAt: timestamp("installed_at").defaultNow(),
@@ -116,6 +117,11 @@ export const hubOrders = pgTable("hub_orders", {
   supplierShopId: integer("supplier_shop_id").references(() => shops.id).notNull(),
   supplierDraftOrderId: text("supplier_draft_order_id"),    // Draft order on supplier side
   supplierOrderId: text("supplier_order_id"),               // Completed order on supplier side
+  // Financial Tracking
+  supplierVariantId: text("supplier_variant_id"),
+  wholesalePrice: text("wholesale_price"),
+  retailPrice: text("retail_price"),
+  commissionAmount: text("commission_amount"),
   // Fulfillment tracking (populated when supplier ships)
   status: text("status").default("pending"),                // pending | ordered | fulfilled | cancelled
   trackingNumber: text("tracking_number"),
@@ -124,6 +130,24 @@ export const hubOrders = pgTable("hub_orders", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
+
+export const walletLedger = pgTable("wallet_ledger", {
+  id: serial("id").primaryKey(),
+  shopId: integer("shop_id").references(() => shops.id).notNull(),
+  partnerId: integer("partner_id").references(() => partners.id), // Optional link to partner profile
+  type: text("type").notNull(), // credit (commission) | debit (wholesale) | payout
+  amount: text("amount").notNull(), // stored as string (decimal)
+  currency: text("currency").default("USD"),
+  referenceOrderId: text("reference_order_id"), // Shopify order ID
+  status: text("status").default("pending"), // pending | confirmed | paid
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const walletLedgerRelations = relations(walletLedger, ({ one }) => ({
+  shop: one(shops, { fields: [walletLedger.shopId], references: [shops.id] }),
+  partner: one(partners, { fields: [walletLedger.partnerId], references: [partners.id] }),
+}));
 
 export const hubOrdersRelations = relations(hubOrders, ({ one }) => ({
   connection: one(hubConnections, { fields: [hubOrders.hubConnectionId], references: [hubConnections.id] }),

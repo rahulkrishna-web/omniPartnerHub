@@ -148,8 +148,8 @@ export default function ProductHubPage() {
   }
 
   return (
-    <AdminLayout title="Product Hub">
-      <div className="max-w-7xl mx-auto px-4 py-6 font-sans">
+    <AdminLayout title="Product Hub" fullWidth>
+      <div className="w-full px-4 py-6 font-sans">
         {/* Top Tabs */}
         <div className="flex border-b border-gray-200 mb-6">
           <button className="px-4 py-2 text-sm font-medium text-gray-900 border-b-2 border-amber-800">

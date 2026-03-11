@@ -9,12 +9,14 @@ export function AdminLayout({
   children, 
   title, 
   subtitle,
-  primaryAction 
+  primaryAction,
+  fullWidth 
 }: { 
   children: React.ReactNode; 
   title: string;
   subtitle?: string;
   primaryAction?: any;
+  fullWidth?: boolean;
 }) {
   const [role, setRole] = useState("supplier");
 
@@ -39,10 +41,11 @@ export function AdminLayout({
       title={title} 
       subtitle={subtitle}
       primaryAction={primaryAction}
+      fullWidth={fullWidth}
     >
       <AppNavigation role={role} />
       <Layout>
-        <Layout.Section>
+        <Layout.Section variant={fullWidth ? "fullWidth" : undefined}>
           {children}
         </Layout.Section>
       </Layout>

@@ -44,11 +44,17 @@ export function AdminLayout({
       fullWidth={fullWidth}
     >
       <AppNavigation role={role} />
-      <Layout>
-        <Layout.Section variant={fullWidth ? "fullWidth" : undefined}>
+      {fullWidth ? (
+        <div className="w-full">
           {children}
-        </Layout.Section>
-      </Layout>
+        </div>
+      ) : (
+        <Layout>
+          <Layout.Section>
+            {children}
+          </Layout.Section>
+        </Layout>
+      )}
     </Page>
   );
 }

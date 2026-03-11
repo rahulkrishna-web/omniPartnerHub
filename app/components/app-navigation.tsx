@@ -14,7 +14,7 @@ export function AppNavigation({ role = "supplier" }: { role?: string }) {
       ) : (
         <>
           <Link href="/hub">Product Hub</Link>
-          <Link href="/hub/orders">My Orders</Link>
+          <Link href="/hub/orders">Hub Orders</Link>
         </>
       )}
       <Link href="/settings">Settings</Link>

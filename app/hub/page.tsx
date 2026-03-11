@@ -5,23 +5,14 @@ import { AdminLayout } from "../components/AdminLayout";
 import { HubProductCard } from "../components/hub-product-card";
 import { triggerAuthRedirect } from "../lib/session";
 import {
-  Page,
-  Layout,
-  Card,
-  EmptyState,
-  Spinner,
-  Banner,
   Box,
   InlineStack,
-  TextField,
-  Select,
+  Spinner,
   Text,
   Badge,
   BlockStack,
-  Divider,
-  InlineGrid,
 } from "@shopify/polaris";
-import { SearchIcon } from "@shopify/polaris-icons";
+import { SearchIcon, XIcon, ChevronDownIcon, InfoIcon } from "@shopify/polaris-icons";
 
 export default function ProductHubPage() {
   const [products, setProducts] = useState<any[]>([]);
@@ -157,133 +148,129 @@ export default function ProductHubPage() {
   }
 
   return (
-    <AdminLayout 
-      title="Product Hub"
-      subtitle="Browse and add products from our supplier network to your store."
-    >
-        <Layout>
-          {/* Banners */}
-          {error && (
-            <Layout.Section>
-              <Banner tone="critical" onDismiss={() => setError(null)}>
-                <p>{error}</p>
-              </Banner>
-            </Layout.Section>
-          )}
-          {successMsg && (
-            <Layout.Section>
-              <Banner tone="success" onDismiss={() => setSuccessMsg(null)}>
-                <p>{successMsg}</p>
-              </Banner>
-            </Layout.Section>
-          )}
+    <AdminLayout title="Product Hub">
+      <div className="max-w-7xl mx-auto px-4 py-6 font-sans">
+        {/* Top Tabs */}
+        <div className="flex border-b border-gray-200 mb-6">
+          <button className="px-4 py-2 text-sm font-medium text-gray-900 border-b-2 border-amber-800">
+            Hub
+          </button>
+          <button className="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700">
+            Shared Products
+          </button>
+          <button className="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700">
+            Imported Products
+          </button>
+        </div>
 
-          {products.length === 0 ? (
-            <Layout.Section>
-              <Card>
-                <EmptyState
-                  heading="No products in the hub yet"
-                  image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
-                >
-                  <p>Suppliers need to mark their products as Public in My Products before they appear here.</p>
-                </EmptyState>
-              </Card>
-            </Layout.Section>
-          ) : (
-            <>
-              {/* Stats Bar */}
-              <Layout.Section>
-                <Card>
-                  <InlineStack gap="600" blockAlign="center">
-                    <BlockStack gap="050">
-                      <Text variant="headingLg" as="p">{availableCount}</Text>
-                      <Text variant="bodyXs" tone="subdued" as="p">Products Available</Text>
-                    </BlockStack>
-                    <Divider />
-                    <BlockStack gap="050">
-                      <Text variant="headingLg" as="p" tone="success">{addedCount}</Text>
-                      <Text variant="bodyXs" tone="subdued" as="p">Added to Your Store</Text>
-                    </BlockStack>
-                    <Divider />
-                    <BlockStack gap="050">
-                      <Text variant="headingLg" as="p">{vendorOptions.length - 1}</Text>
-                      <Text variant="bodyXs" tone="subdued" as="p">Suppliers</Text>
-                    </BlockStack>
-                  </InlineStack>
-                </Card>
-              </Layout.Section>
+        {/* Pro Tip Banner */}
+        <div className="bg-[#FAF7F2] border border-[#F0E6D8] rounded-xl p-4 mb-8 relative flex items-start gap-3">
+          <div className="bg-white p-1.5 rounded-lg shadow-sm border border-gray-100 mt-0.5">
+            <div className="w-5 h-5 text-amber-800 flex items-center justify-center">
+              <span className="text-xs font-bold">💡</span>
+            </div>
+          </div>
+          <div className="flex-1">
+            <h3 className="text-sm font-bold text-gray-900 mb-1">Pro Tip: Automated Inventory</h3>
+            <p className="text-sm text-gray-600">
+              Products added from the Hub automatically sync inventory levels every 15 minutes. You can customize pricing rules in Settings.
+            </p>
+          </div>
+          <button className="text-gray-400 hover:text-gray-600">
+            <div className="w-5 h-5">✕</div>
+          </button>
+        </div>
 
-              {/* Search + Filter Bar */}
-              <Layout.Section>
-                <InlineGrid columns={["twoThirds", "oneThird"]} gap="300">
-                  <TextField
-                    label="Search"
-                    labelHidden
-                    placeholder="Search products or brands…"
-                    value={searchQuery}
-                    onChange={setSearchQuery}
-                    prefix={<span>🔍</span>}
-                    autoComplete="off"
-                    clearButton
-                    onClearButtonClick={() => setSearchQuery("")}
-                  />
-                  <Select
-                    label="Supplier"
-                    labelHidden
-                    options={vendorOptions}
-                    value={vendorFilter}
-                    onChange={setVendorFilter}
-                  />
-                </InlineGrid>
-              </Layout.Section>
+        {/* Search Bar */}
+        <div className="relative mb-6">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <span className="text-gray-400">🔍</span>
+          </div>
+          <input
+            type="text"
+            className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl leading-5 bg-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-amber-500 focus:border-amber-500 sm:text-sm"
+            placeholder="Search all products in the Hub..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
 
-              {/* Results count */}
-              <Layout.Section>
-                <InlineStack align="space-between" blockAlign="center">
-                  <Text variant="bodyMd" tone="subdued" as="p">
-                    {filteredProducts.length === products.length
-                      ? `${products.length} products`
-                      : `${filteredProducts.length} of ${products.length} products`}
-                  </Text>
-                  {(searchQuery || vendorFilter !== "all") && (
-                    <Badge
-                      tone="attention"
-                    >
-                      Filtered
-                    </Badge>
-                  )}
-                </InlineStack>
-              </Layout.Section>
+        {/* Filter Chips */}
+        <div className="flex flex-wrap gap-3 mb-8">
+          {["Categories", "Price Range", "Supplier", "Estimated Delivery"].map((filter) => (
+            <button
+              key={filter}
+              className="inline-flex items-center px-4 py-2 border border-gray-200 rounded-full text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+            >
+              {filter}
+              <span className="ml-2 text-xs text-gray-400">▼</span>
+            </button>
+          ))}
+        </div>
 
-              {/* Product Grid */}
-              {filteredProducts.length === 0 ? (
-                <Layout.Section>
-                  <Card>
-                    <Box padding="800">
-                      <BlockStack gap="200" align="center">
-                        <Text variant="headingMd" as="p">No products match your search</Text>
-                        <Text variant="bodyMd" tone="subdued" as="p">Try a different search term or clear the filter.</Text>
-                      </BlockStack>
-                    </Box>
-                  </Card>
-                </Layout.Section>
-              ) : (
-                filteredProducts.map((product) => (
-                  <Layout.Section variant="oneThird" key={product.id}>
-                    <HubProductCard
-                      product={product}
-                      isConnected={isProductConnected(product.id)}
-                      isOwnProduct={currentShopId !== null && product.supplierShopId === currentShopId}
-                      onAddToStore={handleAddToStore}
-                      ownShop={currentShopId ? products.find(p => p.supplierShopId === currentShopId)?.supplierShop : undefined}
-                      partnerHandle={partnerHandle || undefined}
-                    />
-                  </Layout.Section>
-                ))
-              )}
-            </>
-          )}
-        </Layout>
+        {/* Verified Top Suppliers */}
+        <div className="mb-10">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xs font-bold text-gray-500 tracking-wider uppercase">Verified Top Suppliers</h2>
+            <button className="text-xs font-medium text-gray-400 hover:text-gray-600">View all</button>
+          </div>
+          <div className="flex flex-wrap gap-4">
+            {["LUXURY", "NORDIC", "ESSENTIAL", "ECO-LAB", "URBAN", "TEKNIQ"].map((brand) => (
+              <div
+                key={brand}
+                className="px-6 py-3 bg-gray-50 rounded-lg text-xs font-bold text-gray-400 hover:bg-gray-100 transition-colors cursor-pointer"
+              >
+                {brand}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-6 flex justify-between items-center">
+            <p>{error}</p>
+            <button onClick={() => setError(null)}>✕</button>
+          </div>
+        )}
+        {successMsg && (
+          <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl mb-6 flex justify-between items-center">
+            <p>{successMsg}</p>
+            <button onClick={() => setSuccessMsg(null)}>✕</button>
+          </div>
+        )}
+
+        {products.length === 0 ? (
+          <div className="text-center py-12 bg-white rounded-2xl border border-gray-100 shadow-sm">
+            <h3 className="mt-2 text-lg font-medium text-gray-900">No products in the hub yet</h3>
+            <p className="mt-1 text-sm text-gray-500">Suppliers need to mark their products as Public in My Products before they appear here.</p>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {filteredProducts.map((product) => (
+                <HubProductCard
+                  key={product.id}
+                  product={product}
+                  isConnected={isProductConnected(product.id)}
+                  isOwnProduct={currentShopId !== null && product.supplierShopId === currentShopId}
+                  onAddToStore={handleAddToStore}
+                  ownShop={currentShopId ? products.find(p => p.supplierShopId === currentShopId)?.supplierShop : undefined}
+                  partnerHandle={partnerHandle || undefined}
+                />
+              ))}
+            </div>
+
+            {/* Pagination Placeholder */}
+            <div className="mt-12 flex justify-center items-center gap-2">
+              <button className="p-2 rounded-lg border border-gray-200 text-gray-400 hover:bg-gray-50">‹</button>
+              <button className="w-10 h-10 rounded-lg bg-[#D4B996] text-white font-medium">1</button>
+              <button className="w-10 h-10 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50">2</button>
+              <button className="w-10 h-10 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50">3</button>
+              <button className="p-2 rounded-lg border border-gray-200 text-gray-400 hover:bg-gray-50">›</button>
+            </div>
+          </>
+        )}
+      </div>
     </AdminLayout>
   );
 }

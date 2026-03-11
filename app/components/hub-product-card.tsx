@@ -88,13 +88,13 @@ export function HubProductCard({
           {/* Badge on Image */}
           <div className="absolute top-3 right-3 flex flex-col gap-2">
             {!isConnected && !isOwnProduct && (
-              <span className="bg-black text-white text-[10px] font-bold px-2 py-1 rounded shadow-sm font-sans">
-                IN STOCK
+              <span className="bg-emerald-500/90 backdrop-blur-sm text-white text-[9px] font-bold px-2 py-1 rounded-full shadow-sm font-sans tracking-wider uppercase">
+                In Stock
               </span>
             )}
             {isOwnProduct && (
-              <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-1 rounded shadow-sm font-sans">
-                YOUR PRODUCT
+              <span className="bg-amber-100/90 backdrop-blur-sm text-amber-800 text-[9px] font-bold px-2 py-1 rounded-full shadow-sm font-sans tracking-wider uppercase">
+                Your Product
               </span>
             )}
           </div>
@@ -113,8 +113,8 @@ export function HubProductCard({
             )}
           </div>
           
-          <p className="text-[12px] text-gray-400 mb-4">
-            Supplier: {product.vendor || supplierName}
+          <p className="text-[12px] text-gray-500 mb-4 flex items-center gap-1">
+            <span className="text-gray-400">by</span> {product.vendor || supplierName}
           </p>
 
           <div className="mt-auto">
@@ -141,7 +141,7 @@ export function HubProductCard({
                   setAdding(true);
                   try { await onAddToStore(product.id); } finally { setAdding(false); }
                 }}
-                className={`w-full py-3 bg-[#D4B996] hover:bg-[#C4A986] disabled:opacity-50 text-white rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-colors shadow-sm`}
+                className={`w-full py-3 bg-[#D4B996] hover:bg-[#C4A986] disabled:opacity-50 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all shadow-sm hover:shadow-md active:scale-[0.98]`}
               >
                 {adding ? (
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>

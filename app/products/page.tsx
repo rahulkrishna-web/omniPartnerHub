@@ -1,16 +1,10 @@
-"use client";
-
 import { ProductList } from "../components/product-list";
-import { AppNavigation } from "../components/app-navigation";
-import { Page, Frame } from "@shopify/polaris";
+import { AdminLayout } from "../components/AdminLayout";
 
 export default function ProductsPage() {
   return (
-    <>
-      <AppNavigation />
-      <Page>
-        <ProductList />
-      </Page>
-    </>
+    <AdminLayout title="My Products" fullWidth titleHidden>
+      <ProductList />
+    </AdminLayout>
   );
 }

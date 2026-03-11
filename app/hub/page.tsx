@@ -148,37 +148,34 @@ export default function ProductHubPage() {
   }
 
   return (
-    <AdminLayout title="Product Hub" fullWidth>
-      <div className="w-full px-8 py-6 font-sans">
+    <AdminLayout title="Product Hub" fullWidth titleHidden>
+      <div className="w-full px-8 py-6 font-sans bg-[#F9FAFB] min-h-screen">
         {/* Top Tabs */}
         <div className="flex border-b border-gray-200 mb-6">
-          <button className="px-4 py-2 text-sm font-medium text-gray-900 border-b-2 border-amber-800">
+          <button className="px-5 py-2.5 text-sm font-bold text-[#1A1C1E] border-b-2 border-[#008060] transition-colors">
             Hub
           </button>
-          <button className="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700">
+          <button className="px-5 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors">
             Shared Products
           </button>
-          <button className="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700">
+          <button className="px-5 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors">
             Imported Products
           </button>
         </div>
 
         {/* Pro Tip Banner */}
-        <div className="bg-[#FAF7F2] border border-[#F0E6D8] rounded-xl p-4 mb-8 relative flex items-start gap-3">
-          <div className="bg-white p-1.5 rounded-lg shadow-sm border border-gray-100 mt-0.5">
-            <div className="w-5 h-5 text-amber-800 flex items-center justify-center">
-              <span className="text-xs font-bold">💡</span>
-            </div>
+        <div className="bg-amber-50 border border-amber-100 rounded-2xl p-5 mb-8 flex items-start gap-4 shadow-sm relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-amber-100/20 rounded-full -mr-16 -mt-16 transition-transform group-hover:scale-110 duration-500" />
+          <div className="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center shrink-0 border border-amber-100">
+            <span className="text-xl">💡</span>
           </div>
           <div className="flex-1">
-            <h3 className="text-sm font-bold text-gray-900 mb-1">Pro Tip: Automated Inventory</h3>
-            <p className="text-sm text-gray-600">
-              Products added from the Hub automatically sync inventory levels every 15 minutes. You can customize pricing rules in Settings.
+            <h4 className="text-sm font-bold text-amber-900 mb-1">Pro Tip: Automated Inventory Sync</h4>
+            <p className="text-sm text-amber-800/80 leading-relaxed">
+              Products added from the Hub automatically sync inventory levels every 15 minutes. You can customize your global pricing rules in the <span className="font-bold underline cursor-pointer">App Settings</span>.
             </p>
           </div>
-          <button className="text-gray-400 hover:text-gray-600">
-            <div className="w-5 h-5">✕</div>
-          </button>
+          <button className="text-amber-800/40 hover:text-amber-800 transition-colors p-1 self-start">✕</button>
         </div>
 
         {/* Search Bar */}

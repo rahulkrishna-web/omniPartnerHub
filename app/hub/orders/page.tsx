@@ -66,8 +66,8 @@ export default function HubOrdersPage() {
 
 
   return (
-    <AdminLayout title="Orders Hub" fullWidth>
-      <div className="w-full px-8 py-6 font-sans bg-[#FBFBFB] min-h-screen">
+    <AdminLayout title="Orders Hub" fullWidth titleHidden>
+      <div className="w-full px-8 py-6 font-sans bg-[#F9FAFB] min-h-screen">
         {/* Header Actions */}
         <div className="flex justify-between items-center mb-8">
           <div>
@@ -92,17 +92,20 @@ export default function HubOrdersPage() {
             { label: "TOTAL REVENUE", value: "$45,230.00", change: "18%", trend: "up" },
             { label: "PARTNER COMMISSIONS", value: "$8,420.50", change: "2%", trend: "down" },
           ].map((stat, i) => (
-            <div key={i} className={`bg-white p-6 rounded-2xl shadow-sm border ${stat.pending ? "border-l-4 border-l-amber-400" : "border-gray-100"}`}>
-              <p className="text-[10px] font-bold text-gray-400 tracking-wider mb-2">{stat.label}</p>
+            <div key={i} className={`bg-white p-6 rounded-2xl border transition-all duration-200 hover:shadow-md ${stat.pending ? "border-amber-100 bg-amber-50/10 shadow-sm" : "border-gray-100 shadow-sm"}`}>
+              <div className="flex justify-between items-start mb-2">
+                <p className="text-[10px] font-bold text-gray-400 tracking-wider uppercase">{stat.label}</p>
+                {stat.pending && <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />}
+              </div>
               <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-bold text-gray-900">{stat.value}</span>
+                <span className="text-2xl font-bold text-[#1A1C1E]">{stat.value}</span>
                 {stat.change && (
-                  <span className={`text-[10px] font-bold flex items-center gap-0.5 ${stat.trend === "up" ? "text-emerald-500" : "text-rose-500"}`}>
+                  <span className={`text-[11px] font-bold flex items-center px-1.5 py-0.5 rounded-full ${stat.trend === "up" ? "text-emerald-600 bg-emerald-50" : "text-rose-600 bg-rose-50"}`}>
                     {stat.trend === "up" ? "↗" : "↘"}{stat.change}
                   </span>
                 )}
                 {stat.status && (
-                  <span className="text-[10px] font-bold text-amber-600 ml-1">
+                  <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
                     {stat.status}
                   </span>
                 )}
@@ -160,8 +163,19 @@ export default function HubOrdersPage() {
                       </tr>
                     ) : orders.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="py-12 text-center text-gray-500">
-                          No hub orders yet.
+                        <td colSpan={7} className="py-24 text-center">
+                          <div className="flex flex-col items-center max-w-[320px] mx-auto">
+                            <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+                              <span className="text-3xl text-gray-300">📦</span>
+                            </div>
+                            <h3 className="text-base font-bold text-gray-900 mb-2">No hub orders yet</h3>
+                            <p className="text-sm text-gray-500 leading-relaxed">
+                              When customers order products you added from the hub, they'll appear here for fulfillment tracking.
+                            </p>
+                            <button className="mt-6 text-sm font-bold text-[#008060] hover:text-[#006e52]">
+                              Visit Documentation →
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ) : (

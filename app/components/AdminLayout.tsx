@@ -10,13 +10,15 @@ export function AdminLayout({
   title, 
   subtitle,
   primaryAction,
-  fullWidth 
+  fullWidth,
+  titleHidden
 }: { 
   children: React.ReactNode; 
   title: string;
   subtitle?: string;
   primaryAction?: any;
   fullWidth?: boolean;
+  titleHidden?: boolean;
 }) {
   const [role, setRole] = useState("supplier");
 
@@ -38,9 +40,9 @@ export function AdminLayout({
 
   return (
     <Page 
-      title={title} 
-      subtitle={subtitle}
-      primaryAction={primaryAction}
+      title={titleHidden ? "" : title} 
+      subtitle={titleHidden ? "" : subtitle}
+      primaryAction={titleHidden ? undefined : primaryAction}
       fullWidth={fullWidth}
     >
       <AppNavigation role={role} />
